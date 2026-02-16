@@ -1,0 +1,22 @@
+[package]
+name = "plain-ds"
+version = "0.1.0"
+edition = "2024"
+
+authors = ["dvshapkin <dvshapkin@mail.ru>"]
+description = "Plain data structures"
+readme = "README.md"
+license = "MIT"
+
+documentation = "https://docs.rs/plain-ds"
+homepage = "https://github.com/dvshapkin/plain-ds"
+repository = "https://github.com/dvshapkin/plain-ds"
+
+keywords = ["data-structures", "ds"]
+categories = ["data-structures"]
+
+[lib]
+doctest = false
+
+[dependencies]
+anyhow = "1.0"
