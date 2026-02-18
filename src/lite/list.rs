@@ -1,0 +1,145 @@
+//! Single-linked list implementation.
+
+use std::ptr;
+
+#[derive(PartialEq, Debug)]
+pub struct Node<T>
+where
+    T: Clone,
+{
+    next: Option<Box<Node<T>>>, // 8 bytes
+    payload: T,                 // size_of::<T>() bytes
+}
+
+impl<T> Node<T>
+where
+    T: Clone,
+{
+    pub fn new(payload: T) -> Self {
+        Self {
+            next: None,
+            payload,
+        }
+    }
+
+    pub fn payload(&self) -> &T {
+        &self.payload
+    }
+}
+
+pub struct List<T>
+where
+    T: Clone,
+{
+    head: Option<Box<Node<T>>>, // 8 bytes
+    last: *mut Node<T>,         // 8 bytes
+    size: usize,                // 8 bytes
+}
+
+impl<T> List<T>
+where
+    T: Clone,
+{
+    pub fn new() -> Self {
+        Self {
+            head: None,
+            last: ptr::null_mut(),
+            size: 0,
+        }
+    }
+
+    /// Returns list size.
+    /// Efficiency: O(1)
+    pub fn len(&self) -> usize {
+        self.size
+    }
+
+    /// Checks if the list is empty.
+    /// Efficiency: O(1)
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
+    }
+
+    /// Returns the fist node of the list.
+    /// Efficiency: O(1)
+    pub fn head(&self) -> Option<&Node<T>> {
+        self.head.as_ref().map(|node| &**node)
+    }
+
+    /// Returns the last node of the list.
+    /// Efficiency: O(1)
+    pub fn last(&self) -> Option<&Node<T>> {
+        if self.last.is_null() {
+            None
+        } else {
+            Some(unsafe { &*self.last })
+        }
+}
+
+    /// Adds a new node to the end of the list.
+    /// Efficiency: O(1)
+    pub fn push_back(&mut self, payload: T) {
+        let mut new_node = Box::new(Node::new(payload));
+        let new_node_ptr: *mut Node<T> = &mut *new_node;
+
+        if self.is_empty() {
+            self.head = Some(new_node);
+        } else {
+            unsafe { (*self.last).next = Some(new_node) };
+        }
+        self.last = new_node_ptr;
+        self.size += 1;
+    }
+
+    /// Adds a new node to the front of the list.
+    /// Efficiency: O(1)
+    pub fn push_front(&mut self, payload: T) {
+        let mut new_node = Box::new(Node::new(payload));
+        if !self.is_empty() {
+            new_node.next = self.head.take();
+        }
+        self.head = Some(new_node);
+        self.size += 1;
+    }
+
+    pub fn pop_back(&mut self) -> Option<T> {
+        todo!()
+    }
+
+    pub fn pop_front(&mut self) -> Option<T> {
+        todo!()
+    }
+
+    pub fn insert(&mut self, index: usize, payload: T) {
+        todo!()
+    }
+
+    pub fn remove(&mut self, index: usize) -> T {
+        todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_creation() {
+        let list: List<u8> = List::new();
+        assert_eq!(list.len(), 0, "not zero length after creation");
+        assert_eq!(list.head(), None, "not empty head after creation");
+        assert_eq!(list.last(), None, "not empty last after creation");
+        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+
+        let list: List<String> = List::new();
+        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+
+        let list: List<&[char]> = List::new();
+        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+    }
+
+    #[test]
+    fn test_push_back() {
+        let mut list: List<u8> = List::new();
+    }
+}
