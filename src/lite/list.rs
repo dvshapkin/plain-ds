@@ -141,5 +141,32 @@ mod tests {
     #[test]
     fn test_push_back() {
         let mut list: List<u8> = List::new();
+        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+
+        list.push_back(1);
+        assert_eq!(list.len(), 1, "bad length after push_back()");
+        assert_eq!(list.head(), Some(&Node::new(1)), "incorrect head after push_back()");
+        assert_eq!(list.last(), Some(&Node::new(1)), "incorrect last after push_back()");
+        assert!(!list.is_empty(), "is_empty() returns `true` after push_back()");
+
+        list.push_back(2);
+        assert_eq!(list.len(), 2, "bad length after push_back()");
+        assert!(list.head().is_some(), "head is None after push_back()");
+        assert_eq!(list.head().unwrap().payload, 1, "incorrect head payload");
+        assert_eq!(list.head().unwrap().next, Some(Box::new(Node::new(2))), "incorrect head.next after push_back()");
+        assert_eq!(list.last(), Some(&Node::new(2)), "incorrect last after push_back()");
+        assert!(!list.is_empty(), "is_empty() returns `true` after push_back()");
+
+        let mut list: List<String> = List::new();
+        list.push_back("hello".to_string());
+        assert_eq!(list.len(), 1, "bad length after push_back()");
+        assert!(list.head().is_some(), "head is None after push_back()");
+        assert_eq!(list.head().unwrap().payload, "hello".to_string(), "incorrect head payload");
+
+        let mut list: List<&[char]> = List::new();
+        list.push_back(&['a', 'b', 'c']);
+        assert_eq!(list.len(), 1, "bad length after push_back()");
+        assert!(list.head().is_some(), "head is None after push_back()");
+        assert_eq!(list.head().unwrap().payload, &['a', 'b', 'c'], "incorrect head payload");
     }
 }
