@@ -5,7 +5,7 @@ use std::ptr;
 #[derive(PartialEq, Debug)]
 pub struct Node<T>
 where
-    T: Clone,
+    T: Clone + PartialEq,
 {
     next: Option<Box<Node<T>>>, // 8 bytes
     payload: T,                 // size_of::<T>() bytes
@@ -13,7 +13,7 @@ where
 
 impl<T> Node<T>
 where
-    T: Clone,
+    T: Clone + PartialEq,
 {
     pub fn new(payload: T) -> Self {
         Self {
@@ -29,7 +29,7 @@ where
 
 pub struct List<T>
 where
-    T: Clone,
+    T: Clone + PartialEq,
 {
     head: Option<Box<Node<T>>>, // 8 bytes
     last: *mut Node<T>,         // 8 bytes
@@ -38,7 +38,7 @@ where
 
 impl<T> List<T>
 where
-    T: Clone,
+    T: Clone + PartialEq,
 {
     pub fn new() -> Self {
         Self {
@@ -102,19 +102,34 @@ where
         self.size += 1;
     }
 
+    /// Removes a node from the end of the list and returns it.
+    /// Efficiency: O(1)
     pub fn pop_back(&mut self) -> Option<T> {
         todo!()
     }
 
+    /// Removes a node from the front of the list and returns it.
+    /// Efficiency: O(1)
     pub fn pop_front(&mut self) -> Option<T> {
         todo!()
     }
 
+    /// Insert a new node at the specified location in the list.
+    /// Efficiency: O(n)
     pub fn insert(&mut self, index: usize, payload: T) {
         todo!()
     }
 
+    /// Removes a node from the specified location in the list.
+    /// Efficiency: O(n)
     pub fn remove(&mut self, index: usize) -> T {
+        todo!()
+    }
+
+    /// Finds the first node whose payload is equal to the given one and returns its index.
+    /// Returns `None` if there is no such node.
+    /// Efficiency: O(n)
+    pub fn find(&self, payload: T) -> Option<usize> {
         todo!()
     }
 }
