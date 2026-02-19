@@ -5,7 +5,7 @@ use std::ptr;
 #[derive(PartialEq, Debug)]
 pub struct Node<T>
 where
-    T: Clone + PartialEq,
+    T: PartialEq,
 {
     next: Option<Box<Node<T>>>, // 8 bytes
     payload: T,                 // size_of::<T>() bytes
@@ -13,7 +13,7 @@ where
 
 impl<T> Node<T>
 where
-    T: Clone + PartialEq,
+    T: PartialEq,
 {
     pub fn new(payload: T) -> Self {
         Self {
@@ -29,7 +29,7 @@ where
 
 pub struct List<T>
 where
-    T: Clone + PartialEq,
+    T: PartialEq,
 {
     head: Option<Box<Node<T>>>, // 8 bytes
     last: *mut Node<T>,         // 8 bytes
@@ -38,7 +38,7 @@ where
 
 impl<T> List<T>
 where
-    T: Clone + PartialEq,
+    T: PartialEq,
 {
     pub fn new() -> Self {
         Self {
@@ -183,5 +183,24 @@ mod tests {
         assert_eq!(list.len(), 1, "bad length after push_back()");
         assert!(list.head().is_some(), "head is None after push_back()");
         assert_eq!(list.head().unwrap().payload, &['a', 'b', 'c'], "incorrect head payload");
+    }
+
+    #[test]
+    fn test_memory_leaks() {
+        use drop_tracker::DropTracker;
+
+        let mut tracker = DropTracker::new();
+
+        let mut list = List::new();
+        for i in 0..100 {
+            list.push_back(tracker.track(i));
+        }
+
+        assert_eq!(tracker.alive().count(), 100);
+
+        drop(list);
+
+        assert_eq!(tracker.alive().count(), 0);
+        assert_eq!(tracker.dropped().count(), 100);
     }
 }
