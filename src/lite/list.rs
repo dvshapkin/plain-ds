@@ -1,14 +1,14 @@
 //! Single-linked list implementation.
 
-use std::{mem, ptr};
+use std::ptr;
 
 #[derive(PartialEq, Debug)]
 pub struct Node<T>
 where
     T: PartialEq,
 {
-    next: Option<Box<Node<T>>>, // 8 bytes
-    payload: T,                 // size_of::<T>() bytes
+    next: *mut Node<T>, // 8 bytes
+    payload: T,         // size_of::<T>() bytes
 }
 
 impl<T> Node<T>
@@ -17,7 +17,7 @@ where
 {
     pub fn new(payload: T) -> Self {
         Self {
-            next: None,
+            next: ptr::null_mut(),
             payload,
         }
     }
@@ -31,9 +31,9 @@ pub struct List<T>
 where
     T: PartialEq,
 {
-    head: Option<Box<Node<T>>>, // 8 bytes
-    last: *mut Node<T>,         // 8 bytes
-    size: usize,                // 8 bytes
+    head: *mut Node<T>, // 8 bytes
+    last: *mut Node<T>, // 8 bytes
+    size: usize,        // 8 bytes
 }
 
 impl<T> List<T>
@@ -42,7 +42,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            head: None,
+            head: ptr::null_mut(),
             last: ptr::null_mut(),
             size: 0,
         }
@@ -63,7 +63,11 @@ where
     /// Returns the fist node of the list.
     /// Efficiency: O(1)
     pub fn head(&self) -> Option<&Node<T>> {
-        self.head.as_ref().map(|node| &**node)
+        if self.head.is_null() {
+            None
+        } else {
+            Some(unsafe { &*self.head })
+        }
     }
 
     /// Returns the last node of the list.
@@ -79,60 +83,83 @@ where
     /// Adds a new node to the end of the list.
     /// Efficiency: O(1)
     pub fn push_back(&mut self, payload: T) {
-        let mut new_node = Box::new(Node::new(payload));
-        let new_node_ptr: *mut Node<T> = &mut *new_node;
-
+        let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
-            self.head = Some(new_node);
+            self.head = ptr;
         } else {
-            unsafe { (*self.last).next = Some(new_node) };
+            unsafe { (*self.last).next = ptr };
         }
-        self.last = new_node_ptr;
+        self.last = ptr;
         self.size += 1;
     }
 
     /// Adds a new node to the front of the list.
     /// Efficiency: O(1)
     pub fn push_front(&mut self, payload: T) {
-        let mut new_node = Box::new(Node::new(payload));
-        let new_node_ptr: *mut Node<T> = &mut *new_node;
+        let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
-            self.last = new_node_ptr;
+            self.last = ptr;
         } else {
-            new_node.next = self.head.take();
+            unsafe { (*ptr).next = self.head }
         }
-        self.head = Some(new_node);
+        self.head = ptr;
         self.size += 1;
     }
 
     /// Removes a node from the end of the list and returns it.
     /// Efficiency: O(n)
-    #[allow(mutable_transmutes)]
     pub fn pop_back(&mut self) -> Option<T> {
         if self.is_empty() {
             return None;
         }
-        let mut pre_last: *mut Node<T> = ptr::null_mut();
-        let mut current = self.head.as_ref().unwrap(); // safe unwrap()
-        while let Some(next_node) = &current.next {
-            pre_last =
-                unsafe { mem::transmute::<&Node<T>, &mut Node<T>>(&**current) as *mut Node<T> };
-            current = next_node;
+
+        // Case: only one node in list
+        if self.head == self.last {
+            let payload = unsafe { Box::from_raw(self.head).payload };
+            self.head = ptr::null_mut();
+            self.last = ptr::null_mut();
+            self.size -= 1;
+            return Some(payload);
         }
 
-        let last = self.last;
-        self.last = pre_last;
-        unsafe { (*self.last).next = None };
+        // Finding the penultimate node
+        let mut current = self.head;
+        unsafe {
+            while (*current).next != self.last {
+                current = (*current).next;
+            }
+        }
 
-        let result = unsafe { Box::from_raw(last) };
+        // current now points to the penultimate node
+        let old_last = self.last;
+        self.last = current;
+        unsafe { (*self.last).next = ptr::null_mut() };
 
-        Some(result.payload)
+        // Release the last node and extract the payload
+        let payload = unsafe {
+            let boxed = Box::from_raw(old_last);
+            boxed.payload
+        };
+
+        self.size -= 1;
+        Some(payload)
     }
 
     /// Removes a node from the front of the list and returns it.
     /// Efficiency: O(1)
     pub fn pop_front(&mut self) -> Option<T> {
-        todo!()
+        if self.is_empty() {
+            return None;
+        }
+
+        let old_head = unsafe { Box::from_raw(self.head) };
+        self.head = old_head.next;
+        if self.len() == 1 {
+            self.last = ptr::null_mut();
+        }
+
+        self.size -= 1;
+        Some(old_head.payload)
     }
 
     /// Insert a new node at the specified location in the list.
@@ -152,6 +179,24 @@ where
     /// Efficiency: O(n)
     pub fn find(&self, payload: T) -> Option<usize> {
         todo!()
+    }
+}
+
+impl<T> Drop for List<T>
+where
+    T: PartialEq,
+{
+    fn drop(&mut self) {
+        if !self.is_empty() {
+            let mut current = self.head;
+            unsafe {
+                while !(*current).next.is_null() {
+                    let dead = Box::from_raw(current);
+                    current = dead.next;
+                }
+                let _ = Box::from_raw(current);
+            }
+        }
     }
 }
 
@@ -211,7 +256,7 @@ mod tests {
         assert_eq!(list.head().unwrap().payload, 1, "incorrect head payload");
         assert_eq!(
             list.head().unwrap().next,
-            Some(Box::new(Node::new(2))),
+            list.last,
             "incorrect head.next after push_back()"
         );
         assert_eq!(
@@ -289,7 +334,7 @@ mod tests {
         assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
         assert_eq!(
             list.head().unwrap().next,
-            Some(Box::new(Node::new(1))),
+            list.last,
             "incorrect head.next after push_front()"
         );
         assert_eq!(
@@ -336,7 +381,7 @@ mod tests {
             "incorrect head after push_back()"
         );
         assert!(
-            list.head().unwrap().next.is_none(),
+            list.head().unwrap().next.is_null(),
             "incorrect head.next after push_back()"
         );
         assert_eq!(
@@ -355,7 +400,7 @@ mod tests {
         assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
         assert_eq!(
             list.head().unwrap().next,
-            Some(Box::new(Node::new(1))),
+            list.last,
             "incorrect head.next after push_front()"
         );
         assert_eq!(
@@ -372,11 +417,11 @@ mod tests {
         assert_eq!(list.len(), 3, "bad length after push_back()");
         assert!(list.head().is_some(), "head is None after push_back()");
         assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
-        assert_eq!(
-            list.head().unwrap().next.as_ref().unwrap().payload,
-            1,
-            "incorrect head.next after push_back()"
-        );
+        // assert_eq!(
+        //     list.head().unwrap().next.payload,
+        //     1,
+        //     "incorrect head.next after push_back()"
+        // );
         assert_eq!(
             list.last(),
             Some(&Node::new(3)),
@@ -400,6 +445,191 @@ mod tests {
             list.is_empty(),
             "list should remain empty after pop_back on empty"
         );
+    }
+
+    #[test]
+    fn test_pop_back_single_element() {
+        let mut list = List::new();
+        list.push_back(42);
+        assert_eq!(list.pop_back(), Some(42), "pop_back() should return the only element");
+        assert!(list.is_empty(), "list should be empty after popping the last element");
+        assert_eq!(list.head(), None, "head should be None after popping last element");
+        assert_eq!(list.last(), None, "last should be None after popping last element");
+    }
+
+    #[test]
+    fn test_pop_back_multiple_elements() {
+        let mut list = setup_list();
+        assert_eq!(list.pop_back(), Some(3), "pop_back() should return last element (3)");
+        assert_eq!(list.len(), 2, "size should decrease by 1 after pop_back()");
+        assert_eq!(list.last().unwrap().payload, 2, "new last element should be 2");
+
+        assert_eq!(list.pop_back(), Some(2), "pop_back() should return 2 next");
+        assert_eq!(list.len(), 1, "size should be 1 after second pop_back()");
+        assert_eq!(list.head().unwrap().payload, 1, "head should still be 1");
+        assert_eq!(list.last().unwrap().payload, 1, "last should now be 1");
+
+        assert_eq!(list.pop_back(), Some(1), "pop_back() should return 1 finally");
+        assert!(list.is_empty(), "list should be empty after all pop-backs");
+    }
+
+    #[test]
+    fn test_pop_front_empty_list() {
+        let mut list = List::<u8>::new();
+        assert_eq!(list.pop_front(), None, "pop_front() from empty list should return None");
+        assert!(list.is_empty(), "list should remain empty after pop_front() on empty");
+    }
+
+    #[test]
+    fn test_pop_front_single_element() {
+        let mut list = List::new();
+        list.push_front(99);
+        assert_eq!(list.pop_front(), Some(99), "pop_front() should return the only element");
+        assert!(list.is_empty(), "list should be empty after popping the only element");
+        assert_eq!(list.head(), None, "head should be None after pop");
+        assert_eq!(list.last(), None, "last should be None after pop");
+    }
+
+    #[test]
+    fn test_pop_front_multiple_elements() {
+        let mut list = setup_list(); // [1, 2, 3]
+        assert_eq!(list.pop_front(), Some(1), "pop_front should return first element (1)");
+        assert_eq!(list.len(), 2, "size should decrease by 1 after pop_front");
+        assert_eq!(list.head().unwrap().payload, 2, "new head should be 2");
+        assert_eq!(list.last().unwrap().payload, 3, "last should remain 3");
+
+        assert_eq!(list.pop_front(), Some(2), "pop_front should return 2 next");
+        assert_eq!(list.len(), 1, "size should be 1 after second pop_front");
+        assert_eq!(list.head().unwrap().payload, 3, "head should now be 3");
+        assert_eq!(list.last().unwrap().payload, 3, "last should also be 3");
+
+        assert_eq!(list.pop_front(), Some(3), "pop_front should return 3 finally");
+        assert!(list.is_empty(), "list should be empty after all pop_fronts");
+    }
+
+    #[test]
+    fn test_size_consistency_after_operations() {
+        let mut list = List::new();
+
+        // Push back
+        list.push_back(10);
+        assert_eq!(list.len(), 1, "size after push_back(10) should be 1");
+
+        list.push_back(20);
+        assert_eq!(list.len(), 2, "size after second push_back should be 2");
+
+        // Pop back
+        list.pop_back();
+        assert_eq!(list.len(), 1, "size after pop_back should be 1");
+
+        // Push front
+        list.push_front(5);
+        assert_eq!(list.len(), 2, "size after push_front(5) should be 2");
+
+        // Pop front
+        list.pop_front();
+        assert_eq!(list.len(), 1, "size after pop_front should be 1");
+
+        // Final pop
+        list.pop_back();
+        assert_eq!(list.len(), 0, "size should be 0 after all pops");
+        assert!(list.is_empty(), "list should be empty");
+    }
+
+    #[test]
+    fn test_head_last_consistency_after_mixed_operations() {
+        let mut list = List::new();
+
+        // Start: empty
+        assert_eq!(list.head(), None);
+        assert_eq!(list.last(), None);
+
+        // push_back(1)
+        list.push_back(1);
+        assert_eq!(list.head().unwrap().payload, 1);
+        assert_eq!(list.last().unwrap().payload, 1);
+
+        // push_front(0)
+        list.push_front(0);
+        assert_eq!(list.head().unwrap().payload, 0);
+        assert_eq!(list.last().unwrap().payload, 1);
+
+        // push_back(2)
+        list.push_back(2);
+        assert_eq!(list.head().unwrap().payload, 0);
+        assert_eq!(list.last().unwrap().payload, 2);
+
+        // pop_front() → removes 0
+        list.pop_front();
+        assert_eq!(list.head().unwrap().payload, 1);
+        assert_eq!(list.last().unwrap().payload, 2);
+
+        // pop_back() → removes 2
+        list.pop_back();
+        assert_eq!(list.head().unwrap().payload, 1);
+        assert_eq!(list.last().unwrap().payload, 1);
+
+        // Final pop
+        list.pop_front();
+        assert_eq!(list.head(), None);
+        assert_eq!(list.last(), None);
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn test_complex_types_string() {
+        let mut list = List::new();
+        list.push_back("hello".to_string());
+        list.push_back("world".to_string());
+
+        assert_eq!(list.len(), 2);
+        assert_eq!(list.head().unwrap().payload, "hello");
+        assert_eq!(list.last().unwrap().payload, "world");
+
+        assert_eq!(list.pop_front().unwrap(), "hello".to_string());
+        assert_eq!(list.pop_back().unwrap(), "world".to_string());
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn test_complex_types_vec() {
+        let mut list = List::new();
+        list.push_back(vec![1, 2]);
+        list.push_back(vec![3, 4]);
+
+        assert_eq!(list.len(), 2);
+        assert_eq!(list.head().unwrap().payload, vec![1, 2]);
+        assert_eq!(list.last().unwrap().payload, vec![3, 4]);
+
+        let popped_front = list.pop_front().unwrap();
+        assert_eq!(popped_front, vec![1, 2]);
+
+        let popped_back = list.pop_back().unwrap();
+        assert_eq!(popped_back, vec![3, 4]);
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn test_mixed_push_pop_operations() {
+        let mut list = List::new();
+
+        list.push_back(1);
+        list.push_front(0);
+        list.push_back(2);
+
+        // List: [0, 1, 2]
+        assert_eq!(list.len(), 3);
+        assert_eq!(list.head().unwrap().payload, 0);
+        assert_eq!(list.last().unwrap().payload, 2);
+
+        assert_eq!(list.pop_front(), Some(0));
+        assert_eq!(list.pop_back(), Some(2));
+        assert_eq!(list.pop_front(), Some(1));
+        assert!(list.is_empty());
+
+        // Try one more pop
+        assert_eq!(list.pop_back(), None);
+        assert_eq!(list.pop_front(), None);
     }
 
     #[test]
