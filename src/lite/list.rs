@@ -95,7 +95,10 @@ where
     /// Efficiency: O(1)
     pub fn push_front(&mut self, payload: T) {
         let mut new_node = Box::new(Node::new(payload));
-        if !self.is_empty() {
+        let new_node_ptr: *mut Node<T> = &mut *new_node;
+        if self.is_empty() {
+            self.last = new_node_ptr;
+        } else {
             new_node.next = self.head.take();
         }
         self.head = Some(new_node);
@@ -186,6 +189,38 @@ mod tests {
     }
 
     #[test]
+    fn test_push_front() {
+        let mut list: List<u8> = List::new();
+        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+
+        list.push_front(1);
+        assert_eq!(list.len(), 1, "bad length after push_front()");
+        assert_eq!(list.head(), Some(&Node::new(1)), "incorrect head after push_front()");
+        assert_eq!(list.last(), Some(&Node::new(1)), "incorrect last after push_front()");
+        assert!(!list.is_empty(), "is_empty() returns `true` after push_front()");
+
+        list.push_front(2);
+        assert_eq!(list.len(), 2, "bad length after push_front()");
+        assert!(list.head().is_some(), "head is None after push_front()");
+        assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
+        assert_eq!(list.head().unwrap().next, Some(Box::new(Node::new(1))), "incorrect head.next after push_front()");
+        assert_eq!(list.last(), Some(&Node::new(1)), "incorrect last after push_front()");
+        assert!(!list.is_empty(), "is_empty() returns `true` after push_front()");
+
+        let mut list: List<String> = List::new();
+        list.push_front("hello".to_string());
+        assert_eq!(list.len(), 1, "bad length after push_front()");
+        assert!(list.head().is_some(), "head is None after push_front()");
+        assert_eq!(list.head().unwrap().payload, "hello".to_string(), "incorrect head payload");
+
+        let mut list: List<&[char]> = List::new();
+        list.push_front(&['a', 'b', 'c']);
+        assert_eq!(list.len(), 1, "bad length after push_front()");
+        assert!(list.head().is_some(), "head is None after push_front()");
+        assert_eq!(list.head().unwrap().payload, &['a', 'b', 'c'], "incorrect head payload");
+    }
+
+    #[test]
     fn test_memory_leaks() {
         use drop_tracker::DropTracker;
 
@@ -195,12 +230,15 @@ mod tests {
         for i in 0..100 {
             list.push_back(tracker.track(i));
         }
+        for i in 100..111 {
+            list.push_front(tracker.track(i));
+        }
 
-        assert_eq!(tracker.alive().count(), 100);
+        assert_eq!(tracker.alive().count(), 111);
 
         drop(list);
 
         assert_eq!(tracker.alive().count(), 0);
-        assert_eq!(tracker.dropped().count(), 100);
+        assert_eq!(tracker.dropped().count(), 111);
     }
 }
