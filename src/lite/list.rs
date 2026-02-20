@@ -197,6 +197,7 @@ where
     }
 
     /// Insert a new node at the specified location in the list.
+    /// Error returns, if the index out of bounds.
     /// Efficiency: O(n)
     pub fn insert(&mut self, index: usize, payload: T) -> anyhow::Result<()> {
         if index > self.size {
@@ -232,9 +233,36 @@ where
     }
 
     /// Removes a node from the specified location in the list.
+    /// Error returns, if the index out of bounds.
     /// Efficiency: O(n)
-    pub fn remove(&mut self, index: usize) -> T {
-        todo!()
+    pub fn remove(&mut self, index: usize) -> anyhow::Result<T> {
+        if index >= self.size {
+            return Err(anyhow!("index out of bounds"));
+        }
+        if index == 0 {
+            // remove first
+            return Ok(self.pop_front().unwrap());
+        }
+        if index + 1 == self.size {
+            // remove last
+            return Ok(self.pop_back().unwrap());
+        }
+
+        // Finding the removing item
+        let mut before = self.head;
+        let mut index = index;
+        unsafe {
+            while index > 1 {
+                before = (*before).next;
+                index -= 1;
+            }
+        }
+
+        let removed = unsafe { Box::from_raw((*before).next) };
+        unsafe { (*before).next = removed.next };
+
+        self.size -= 1;
+        Ok(removed.payload)
     }
 
     /// Finds the first node whose payload is equal to the given one and returns its index.
@@ -345,12 +373,12 @@ where
 mod tests {
     use super::*;
 
-    // Helper: create a list with values [1, 2, 3] for reuse
-    fn setup_list() -> List<u8> {
+    // Helper function to create a list with values [0, 1, 2, ..., n-1]
+    fn setup_list(n: usize) -> List<usize> {
         let mut list = List::new();
-        list.push_back(1);
-        list.push_back(2);
-        list.push_back(3);
+        for i in 0..n {
+            list.push_back(i);
+        }
         list
     }
 
@@ -550,21 +578,17 @@ mod tests {
 
         #[test]
         fn test_pop_back_multiple_elements() {
-            let mut list = setup_list();
-            assert_eq!(
-                list.pop_back(),
-                Some(3),
-                "pop_back() should return last element (3)"
-            );
+            let mut list = setup_list(3); // [0, 1, 2]
+            assert_eq!(list.pop_back(), Some(2), "pop_back() should return last element (2)");
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_back()");
-            assert_eq!(list.last(), Some(&2), "new last element should be 2");
+            assert_eq!(list.last(), Some(&1), "new last element should be 1");
 
-            assert_eq!(list.pop_back(), Some(2), "pop_back() should return 2 next");
+            assert_eq!(list.pop_back(), Some(1), "pop_back() should return 1 next");
             assert_eq!(list.len(), 1, "size should be 1 after second pop_back()");
-            assert_eq!(list.head(), Some(&1), "head should still be 1");
-            assert_eq!(list.last(), Some(&1), "last should now be 1");
+            assert_eq!(list.head(), Some(&0), "head should still be 0");
+            assert_eq!(list.last(), Some(&0), "last should now be 0");
 
-            assert_eq!(list.pop_back(), Some(1), "pop_back() should return 1 finally");
+            assert_eq!(list.pop_back(), Some(0), "pop_back() should return 0 finally");
             assert!(list.is_empty(), "list should be empty after all pop-backs");
         }
 
@@ -601,22 +625,18 @@ mod tests {
 
         #[test]
         fn test_pop_front_multiple_elements() {
-            let mut list = setup_list(); // [1, 2, 3]
-            assert_eq!(
-                list.pop_front(),
-                Some(1),
-                "pop_front should return first element (1)"
-            );
+            let mut list = setup_list(3); // [0, 1, 2]
+            assert_eq!(list.pop_front(), Some(0), "pop_front should return first element (0)");
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_front");
-            assert_eq!(list.head(), Some(&2), "new head should be 2");
-            assert_eq!(list.last(), Some(&3), "last should remain 3");
+            assert_eq!(list.head(), Some(&1), "new head should be 1");
+            assert_eq!(list.last(), Some(&2), "last should remain 2");
 
-            assert_eq!(list.pop_front(), Some(2), "pop_front should return 2 next");
+            assert_eq!(list.pop_front(), Some(1), "pop_front should return 1 next");
             assert_eq!(list.len(), 1, "size should be 1 after second pop_front");
-            assert_eq!(list.head(), Some(&3), "head should now be 3");
-            assert_eq!(list.last(), Some(&3), "last should also be 3");
+            assert_eq!(list.head(), Some(&2), "head should now be 2");
+            assert_eq!(list.last(), Some(&2), "last should also be 2");
 
-            assert_eq!(list.pop_front(), Some(3), "pop_front should return 3 finally");
+            assert_eq!(list.pop_front(), Some(2), "pop_front should return 2 finally");
             assert!(list.is_empty(), "list should be empty after all pop_fronts");
         }
     }
@@ -888,15 +908,6 @@ mod tests {
     mod insert {
         use super::*;
 
-        // Helper function to create a list with values [0, 1, 2, ..., n-1]
-        fn setup_list(n: usize) -> List<usize> {
-            let mut list = List::new();
-            for i in 0..n {
-                list.push_back(i);
-            }
-            list
-        }
-
         #[test]
         fn test_insert_at_beginning_empty_list() {
             let mut list = List::new();
@@ -1037,6 +1048,140 @@ mod tests {
             // Insert at end (should work)
             assert!(single_element.insert(2, 150).is_ok());
             assert_eq!(single_element.find(&150), Some(2));
+        }
+    }
+
+    mod remove {
+        use super::*;
+
+        #[test]
+        fn test_remove_from_empty_list() {
+            let mut list = List::<u8>::new();
+            assert!(list.remove(0).is_err(), "remove from empty list should return error");
+            assert_eq!(list.len(), 0, "size should remain 0");
+        }
+
+        #[test]
+        fn test_remove_first_element() {
+            let mut list = setup_list(3); // [0, 1, 2]
+            let removed = list.remove(0).unwrap();
+            assert_eq!(removed, 0, "removed value should be 0 (first element)");
+            assert_eq!(list.len(), 2, "size should decrease by 1");
+            assert_eq!(list.head(), Some(&1), "new head should be 1");
+            assert_eq!(list.find(&0), None, "0 should no longer be in the list");
+        }
+
+        #[test]
+        fn test_remove_last_element() {
+            let mut list = setup_list(3); // [0, 1, 2]
+            let removed = list.remove(2).unwrap(); // index = size - 1
+            assert_eq!(removed, 2, "removed value should be 2 (last element)");
+            assert_eq!(list.len(), 2, "size should decrease by 1");
+            assert_eq!(list.last(), Some(&1), "new last should be 1");
+            assert_eq!(list.find(&2), None, "2 should no longer be in the list");
+        }
+
+        #[test]
+        fn test_remove_middle_element() {
+            let mut list = setup_list(4); // [0, 1, 2, 3]
+            let removed = list.remove(1).unwrap(); // remove element at index 1 (value 1)
+            assert_eq!(removed, 1, "removed value should be 1");
+            assert_eq!(list.len(), 3, "size should decrease by 1");
+
+            // Verify the order: [0, 2, 3]
+            let values: Vec<usize> = list.iter().copied().collect();
+            assert_eq!(values, vec![0, 2, 3], "list should have correct order after removal");
+        }
+
+        #[test]
+        fn test_remove_out_of_bounds() {
+            let mut list = setup_list(2); // [0, 1]
+
+            // Index equal to size (should be out of bounds)
+            assert!(list.remove(2).is_err(), "remove with index == size should return error");
+
+            // Index greater than size
+            assert!(list.remove(5).is_err(), "remove with large out-of-bounds index should return error");
+
+            // Empty list
+            let mut empty_list = List::<u8>::new();
+            assert!(empty_list.remove(0).is_err(), "remove from empty list should return error");
+        }
+
+        #[test]
+        fn test_remove_single_element_list() {
+            let mut list = List::new();
+            list.push_back(42);
+            let removed = list.remove(0).unwrap();
+            assert_eq!(removed, 42, "removed value should be 42");
+            assert!(list.is_empty(), "list should be empty after removing the only element");
+            assert_eq!(list.head(), None, "head should be None");
+            assert_eq!(list.last(), None, "last should be None");
+        }
+
+        #[test]
+        fn test_remove_preserves_head_and_last_pointers() {
+            let mut list = setup_list(4); // [0, 1, 2, 3]
+
+            // Remove middle element (index 1, value 1)
+            let _ = list.remove(1);
+
+            assert_eq!(list.head(), Some(&0), "head pointer should remain correct");
+            assert_eq!(list.last(), Some(&3), "last pointer should remain correct");
+        }
+
+        #[test]
+        fn test_multiple_removes() {
+            let mut list = setup_list(5); // [0, 1, 2, 3, 4]
+
+            // Remove second element (index 1, value 1)
+            let removed1 = list.remove(1).unwrap();
+            assert_eq!(removed1, 1);
+            assert_eq!(list.len(), 4);
+
+            // Remove new second element (was 2, now at index 1)
+            let removed2 = list.remove(1).unwrap();
+            assert_eq!(removed2, 2);
+            assert_eq!(list.len(), 3);
+
+            // Final state should be [0, 3, 4]
+            let final_values: Vec<usize> = list.iter().copied().collect();
+            assert_eq!(final_values, vec![0, 3, 4], "list should have correct values after multiple removes");
+        }
+
+        #[test]
+        fn test_remove_with_complex_types_string() {
+            let mut list = List::new();
+            list.push_back("first".to_string());
+            list.push_back("second".to_string());
+            list.push_back("third".to_string());
+
+            let removed = list.remove(1).unwrap(); // Remove "second"
+            assert_eq!(removed, "second".to_string(), "removed value should be 'second'");
+            assert_eq!(list.len(), 2, "size should be 2 after removal");
+
+            // Verify order: ["first", "third"]
+            let remaining: Vec<String> = list.iter().map(|s| s.clone()).collect();
+            assert_eq!(remaining, vec!["first", "third"]);
+        }
+
+        #[test]
+        fn test_remove_edge_cases() {
+            // Test removing from a list with two elements
+            let mut two_elements = List::new();
+            two_elements.push_back(10);
+            two_elements.push_back(20);
+
+            // Remove first (index 0)
+            let removed_first = two_elements.remove(0).unwrap();
+            assert_eq!(removed_first, 10);
+            assert_eq!(two_elements.len(), 1);
+            assert_eq!(two_elements.head(), Some(&20));
+
+            // Now remove the last (only remaining) element
+            let removed_last = two_elements.remove(0).unwrap();
+            assert_eq!(removed_last, 20);
+            assert!(two_elements.is_empty());
         }
     }
 
