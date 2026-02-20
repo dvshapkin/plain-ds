@@ -579,7 +579,11 @@ mod tests {
         #[test]
         fn test_pop_back_multiple_elements() {
             let mut list = setup_list(3); // [0, 1, 2]
-            assert_eq!(list.pop_back(), Some(2), "pop_back() should return last element (2)");
+            assert_eq!(
+                list.pop_back(),
+                Some(2),
+                "pop_back() should return last element (2)"
+            );
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_back()");
             assert_eq!(list.last(), Some(&1), "new last element should be 1");
 
@@ -588,7 +592,11 @@ mod tests {
             assert_eq!(list.head(), Some(&0), "head should still be 0");
             assert_eq!(list.last(), Some(&0), "last should now be 0");
 
-            assert_eq!(list.pop_back(), Some(0), "pop_back() should return 0 finally");
+            assert_eq!(
+                list.pop_back(),
+                Some(0),
+                "pop_back() should return 0 finally"
+            );
             assert!(list.is_empty(), "list should be empty after all pop-backs");
         }
 
@@ -626,7 +634,11 @@ mod tests {
         #[test]
         fn test_pop_front_multiple_elements() {
             let mut list = setup_list(3); // [0, 1, 2]
-            assert_eq!(list.pop_front(), Some(0), "pop_front should return first element (0)");
+            assert_eq!(
+                list.pop_front(),
+                Some(0),
+                "pop_front should return first element (0)"
+            );
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_front");
             assert_eq!(list.head(), Some(&1), "new head should be 1");
             assert_eq!(list.last(), Some(&2), "last should remain 2");
@@ -636,7 +648,11 @@ mod tests {
             assert_eq!(list.head(), Some(&2), "head should now be 2");
             assert_eq!(list.last(), Some(&2), "last should also be 2");
 
-            assert_eq!(list.pop_front(), Some(2), "pop_front should return 2 finally");
+            assert_eq!(
+                list.pop_front(),
+                Some(2),
+                "pop_front should return 2 finally"
+            );
             assert!(list.is_empty(), "list should be empty after all pop_fronts");
         }
     }
@@ -917,7 +933,7 @@ mod tests {
             );
             assert_eq!(list.len(), 1, "list size should be 1 after insertion");
             assert_eq!(list.head(), Some(&42), "head should contain inserted value");
-            assert_eq!( list.last(), Some(&42), "last should contain inserted value");
+            assert_eq!(list.last(), Some(&42), "last should contain inserted value");
         }
 
         #[test]
@@ -941,7 +957,11 @@ mod tests {
             );
             assert_eq!(list.len(), 3, "size should increase by 1");
             assert_eq!(list.last(), Some(&999), "last element should be 999");
-            assert_eq!(list.find(&999), Some(2), "find should locate 999 at index 2");
+            assert_eq!(
+                list.find(&999),
+                Some(2),
+                "find should locate 999 at index 2"
+            );
         }
 
         #[test]
@@ -1057,7 +1077,10 @@ mod tests {
         #[test]
         fn test_remove_from_empty_list() {
             let mut list = List::<u8>::new();
-            assert!(list.remove(0).is_err(), "remove from empty list should return error");
+            assert!(
+                list.remove(0).is_err(),
+                "remove from empty list should return error"
+            );
             assert_eq!(list.len(), 0, "size should remain 0");
         }
 
@@ -1090,7 +1113,11 @@ mod tests {
 
             // Verify the order: [0, 2, 3]
             let values: Vec<usize> = list.iter().copied().collect();
-            assert_eq!(values, vec![0, 2, 3], "list should have correct order after removal");
+            assert_eq!(
+                values,
+                vec![0, 2, 3],
+                "list should have correct order after removal"
+            );
         }
 
         #[test]
@@ -1098,14 +1125,23 @@ mod tests {
             let mut list = setup_list(2); // [0, 1]
 
             // Index equal to size (should be out of bounds)
-            assert!(list.remove(2).is_err(), "remove with index == size should return error");
+            assert!(
+                list.remove(2).is_err(),
+                "remove with index == size should return error"
+            );
 
             // Index greater than size
-            assert!(list.remove(5).is_err(), "remove with large out-of-bounds index should return error");
+            assert!(
+                list.remove(5).is_err(),
+                "remove with large out-of-bounds index should return error"
+            );
 
             // Empty list
             let mut empty_list = List::<u8>::new();
-            assert!(empty_list.remove(0).is_err(), "remove from empty list should return error");
+            assert!(
+                empty_list.remove(0).is_err(),
+                "remove from empty list should return error"
+            );
         }
 
         #[test]
@@ -1114,7 +1150,10 @@ mod tests {
             list.push_back(42);
             let removed = list.remove(0).unwrap();
             assert_eq!(removed, 42, "removed value should be 42");
-            assert!(list.is_empty(), "list should be empty after removing the only element");
+            assert!(
+                list.is_empty(),
+                "list should be empty after removing the only element"
+            );
             assert_eq!(list.head(), None, "head should be None");
             assert_eq!(list.last(), None, "last should be None");
         }
@@ -1146,7 +1185,11 @@ mod tests {
 
             // Final state should be [0, 3, 4]
             let final_values: Vec<usize> = list.iter().copied().collect();
-            assert_eq!(final_values, vec![0, 3, 4], "list should have correct values after multiple removes");
+            assert_eq!(
+                final_values,
+                vec![0, 3, 4],
+                "list should have correct values after multiple removes"
+            );
         }
 
         #[test]
@@ -1157,7 +1200,11 @@ mod tests {
             list.push_back("third".to_string());
 
             let removed = list.remove(1).unwrap(); // Remove "second"
-            assert_eq!(removed, "second".to_string(), "removed value should be 'second'");
+            assert_eq!(
+                removed,
+                "second".to_string(),
+                "removed value should be 'second'"
+            );
             assert_eq!(list.len(), 2, "size should be 2 after removal");
 
             // Verify order: ["first", "third"]
@@ -1243,6 +1290,231 @@ mod tests {
             // После IntoIterator список уничтожен
             assert_eq!(tracker.alive().count(), 0);
             assert_eq!(tracker.dropped().count(), 5);
+        }
+
+        #[test]
+        fn test_memory_leaks_with_remove_operations() {
+            let mut tracker = DropTracker::new();
+
+            let mut list = List::new();
+            for i in 0..50 {
+                list.push_back(tracker.track(i));
+            }
+
+            assert_eq!(
+                tracker.alive().count(),
+                50,
+                "50 elements should be alive after push_back"
+            );
+
+            // Удаляем элементы с разных позиций
+            assert_eq!(list.remove(0).unwrap(), 0);
+            assert_eq!(list.remove(48).unwrap(), 49); // последний элемент
+            assert_eq!(list.remove(24).unwrap(), 25); // средний элемент
+
+            assert_eq!(
+                tracker.alive().count(),
+                47,
+                "After removing 3 elements, 47 should remain alive"
+            );
+
+            // Полностью очищаем список
+            while list.len() > 0 {
+                let _ = list.pop_front();
+            }
+
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "All elements should be dropped after clearing the list"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                50,
+                "All 50 elements should have been dropped"
+            );
+        }
+
+        #[test]
+        fn test_memory_leaks_with_insert_operations() {
+            let mut tracker = DropTracker::new();
+
+            let mut list = List::new();
+            list.push_back(tracker.track(1));
+            list.push_back(tracker.track(3));
+
+            assert_eq!(
+                tracker.alive().count(),
+                2,
+                "2 elements should be alive initially"
+            );
+
+            // Вставляем элемент в середину
+            list.insert(1, tracker.track(2)).unwrap();
+
+            assert_eq!(
+                tracker.alive().count(),
+                3,
+                "3 elements should be alive after insert"
+            );
+
+            // Вставляем в начало и конец
+            list.insert(0, tracker.track(0)).unwrap();
+            list.insert(3, tracker.track(4)).unwrap();
+
+            assert_eq!(
+                tracker.alive().count(),
+                5,
+                "5 elements should be alive after all inserts"
+            );
+
+            drop(list);
+
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "All elements should be dropped when list is dropped"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                5,
+                "All 5 elements should have been dropped"
+            );
+        }
+
+        #[test]
+        fn test_memory_leaks_partial_operations() {
+            let mut tracker = DropTracker::new();
+
+            let mut list = List::new();
+            for i in 0..20 {
+                list.push_back(tracker.track(i));
+            }
+
+            assert_eq!(tracker.alive().count(), 20, "20 elements should be alive");
+
+            // Выполняем несколько операций удаления и добавления
+            for _ in 0..5 {
+                let _ = list.pop_back();
+            }
+            for i in 100..103 {
+                list.push_front(tracker.track(i));
+            }
+
+            assert!(
+                tracker.alive().count() < 20,
+                "Fewer elements should be alive after partial operations"
+            );
+
+            drop(list);
+
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "All remaining elements should be dropped"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                23,
+                "Total 23 elements should have been dropped (20 original + 3 added - 5 removed)"
+            );
+        }
+
+        #[test]
+        fn test_memory_leaks_with_complex_types() {
+            let mut tracker = DropTracker::new();
+
+            #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+            struct ComplexStruct {
+                id: usize,
+                data: String,
+            }
+
+            impl Drop for ComplexStruct {
+                fn drop(&mut self) {
+                    // Просто отмечаем удаление
+                }
+            }
+
+            let mut list = List::new();
+            for i in 0..15 {
+                list.push_back(tracker.track(ComplexStruct {
+                    id: i,
+                    data: format!("data_{}", i),
+                }));
+            }
+
+            assert_eq!(
+                tracker.alive().count(),
+                15,
+                "15 ComplexStruct elements should be alive"
+            );
+
+            // Удаляем несколько элементов
+            for _ in 0..3 {
+                let _ = list.pop_front();
+            }
+
+            assert_eq!(
+                tracker.alive().count(),
+                12,
+                "12 ComplexStruct elements should remain alive"
+            );
+
+            drop(list);
+
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "All ComplexStruct elements should be dropped"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                15,
+                "All 15 ComplexStruct elements should have been dropped"
+            );
+        }
+
+        #[test]
+        fn test_memory_leaks_error_conditions() {
+            let mut tracker = DropTracker::new();
+
+            let mut list = List::new();
+            for i in 0..10 {
+                list.push_back(tracker.track(i));
+            }
+
+            assert_eq!(tracker.alive().count(), 10, "10 elements should be alive");
+
+            // Попытка удаления по неверному индексу (не должна вызывать утечек)
+            assert!(list.remove(15).is_err());
+
+            // Попытка вставки по неверному индексу
+            assert!(list.insert(15, tracker.track(99)).is_err());
+
+            assert_eq!(
+                tracker.alive().count(),
+                10,
+                "10 elements should be alive (10 original + 1 attempted insert)"
+            );
+
+            // Очищаем список
+            while list.len() > 0 {
+                let _ = list.pop_front();
+            }
+
+            drop(list); // Явное удаление
+
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "All elements should be dropped even after error conditions"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                11,
+                "All 11 elements should have been dropped"
+            );
         }
     }
 }
