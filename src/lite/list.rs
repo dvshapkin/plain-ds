@@ -70,34 +70,38 @@ where
         self.size == 0
     }
 
-    /// Returns the fist node of the list.
+    /// Returns the payload value of the first node in the list.
     /// Efficiency: O(1)
-    pub fn head(&self) -> Option<&Node<T>> {
+    pub fn head(&self) -> Option<&T> {
         if self.head.is_null() {
             None
         } else {
-            Some(unsafe { &*self.head })
+            Some(unsafe { &(*self.head).payload })
         }
     }
 
-    /// Returns the last node of the list.
+    /// Returns the payload value of the last node in the list.
     /// Efficiency: O(1)
-    pub fn last(&self) -> Option<&Node<T>> {
+    pub fn last(&self) -> Option<&T> {
         if self.last.is_null() {
             None
         } else {
-            Some(unsafe { &*self.last })
+            Some(unsafe { &(*self.last).payload })
         }
     }
 
-    /// Returns an iterator over the immutable payload values of the list.
+    /// Returns an iterator over the immutable items of the list.
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         Iter {
-            current: self.head()
+            current: if self.head.is_null() {
+                None
+            } else {
+                Some(unsafe { &*self.head })
+            },
         }
     }
 
-    /// Returns an iterator over the mutable payload values of the list.
+    /// Returns an iterator over the mutable items of the list.
     pub fn iter_mut(&self) -> impl Iterator<Item = &mut T> {
         IterMut {
             current: self.head,
@@ -107,9 +111,7 @@ where
 
     /// Returns an iterator that consumes the list.
     pub fn into_iter(self) -> impl Iterator<Item = T> {
-        IntoIter {
-            list: self,
-        }
+        IntoIter { list: self }
     }
 
     /// Adds a new node to the end of the list.
@@ -138,7 +140,7 @@ where
         self.size += 1;
     }
 
-    /// Removes a node from the end of the list and returns it.
+    /// Removes a node from the end of the list and returns its payload value.
     /// Efficiency: O(n)
     pub fn pop_back(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -177,7 +179,7 @@ where
         Some(payload)
     }
 
-    /// Removes a node from the front of the list and returns it.
+    /// Removes a node from the front of the list and returns its payload value.
     /// Efficiency: O(1)
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -377,16 +379,8 @@ mod tests {
 
             list.push_back(1);
             assert_eq!(list.len(), 1, "bad length after push_back()");
-            assert_eq!(
-                list.head(),
-                Some(&Node::new(1)),
-                "incorrect head after push_back()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(1)),
-                "incorrect last after push_back()"
-            );
+            assert_eq!(list.head(), Some(&1), "incorrect head after push_back()");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_back()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_back()"
@@ -395,17 +389,8 @@ mod tests {
             list.push_back(2);
             assert_eq!(list.len(), 2, "bad length after push_back()");
             assert!(list.head().is_some(), "head is None after push_back()");
-            assert_eq!(list.head().unwrap().payload, 1, "incorrect head payload");
-            assert_eq!(
-                list.head().unwrap().next,
-                list.last,
-                "incorrect head.next after push_back()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(2)),
-                "incorrect last after push_back()"
-            );
+            assert_eq!(list.head(), Some(&1), "incorrect head payload");
+            assert_eq!(list.last(), Some(&2), "incorrect last after push_back()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_back()"
@@ -415,18 +400,14 @@ mod tests {
             list.push_back("hello".to_string());
             assert_eq!(list.len(), 1, "bad length after push_back()");
             assert!(list.head().is_some(), "head is None after push_back()");
-            assert_eq!(
-                list.head().unwrap().payload,
-                "hello".to_string(),
-                "incorrect head payload"
-            );
+            assert_eq!(list.head().unwrap(), "hello", "incorrect head payload");
 
             let mut list: List<&[char]> = List::new();
             list.push_back(&['a', 'b', 'c']);
             assert_eq!(list.len(), 1, "bad length after push_back()");
             assert!(list.head().is_some(), "head is None after push_back()");
             assert_eq!(
-                list.head().unwrap().payload,
+                list.head().unwrap(),
                 &['a', 'b', 'c'],
                 "incorrect head payload"
             );
@@ -438,14 +419,14 @@ mod tests {
 
             list.push_back(100);
             assert_eq!(list.len(), 1);
-            assert_eq!(list.head().unwrap().payload, 100);
-            assert_eq!(list.last().unwrap().payload, 100);
+            assert_eq!(list.head(), Some(&100));
+            assert_eq!(list.last(), Some(&100));
 
             let mut list2 = List::new();
             list2.push_front(200);
             assert_eq!(list2.len(), 1);
-            assert_eq!(list2.head().unwrap().payload, 200);
-            assert_eq!(list2.last().unwrap().payload, 200);
+            assert_eq!(list2.head(), Some(&200));
+            assert_eq!(list2.last(), Some(&200));
         }
 
         #[test]
@@ -455,16 +436,8 @@ mod tests {
 
             list.push_front(1);
             assert_eq!(list.len(), 1, "bad length after push_front()");
-            assert_eq!(
-                list.head(),
-                Some(&Node::new(1)),
-                "incorrect head after push_front()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(1)),
-                "incorrect last after push_front()"
-            );
+            assert_eq!(list.head(), Some(&1), "incorrect head after push_front()");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_front()"
@@ -473,17 +446,8 @@ mod tests {
             list.push_front(2);
             assert_eq!(list.len(), 2, "bad length after push_front()");
             assert!(list.head().is_some(), "head is None after push_front()");
-            assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
-            assert_eq!(
-                list.head().unwrap().next,
-                list.last,
-                "incorrect head.next after push_front()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(1)),
-                "incorrect last after push_front()"
-            );
+            assert_eq!(list.head(), Some(&2), "incorrect head payload");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_front()"
@@ -493,44 +457,28 @@ mod tests {
             list.push_front("hello".to_string());
             assert_eq!(list.len(), 1, "bad length after push_front()");
             assert!(list.head().is_some(), "head is None after push_front()");
-            assert_eq!(
-                list.head().unwrap().payload,
-                "hello".to_string(),
-                "incorrect head payload"
-            );
+            assert_eq!(list.head().unwrap(), "hello", "incorrect head payload");
 
             let mut list: List<&[char]> = List::new();
             list.push_front(&['a', 'b', 'c']);
             assert_eq!(list.len(), 1, "bad length after push_front()");
             assert!(list.head().is_some(), "head is None after push_front()");
             assert_eq!(
-                list.head().unwrap().payload,
+                list.head().unwrap(),
                 &['a', 'b', 'c'],
                 "incorrect head payload"
             );
         }
 
         #[test]
-        fn test_mix_push_back_front() {
+        fn test_mix_push() {
             let mut list: List<u8> = List::new();
             assert!(list.is_empty(), "is_empty() returns `false` after creation");
 
             list.push_back(1);
             assert_eq!(list.len(), 1, "bad length after push_back()");
-            assert_eq!(
-                list.head(),
-                Some(&Node::new(1)),
-                "incorrect head after push_back()"
-            );
-            assert!(
-                list.head().unwrap().next.is_null(),
-                "incorrect head.next after push_back()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(1)),
-                "incorrect last after push_back()"
-            );
+            assert_eq!(list.head(), Some(&1), "incorrect head after push_back()");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_back()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_back()"
@@ -539,17 +487,8 @@ mod tests {
             list.push_front(2);
             assert_eq!(list.len(), 2, "bad length after push_front()");
             assert!(list.head().is_some(), "head is None after push_front()");
-            assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
-            assert_eq!(
-                list.head().unwrap().next,
-                list.last,
-                "incorrect head.next after push_front()"
-            );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(1)),
-                "incorrect last after push_front()"
-            );
+            assert_eq!(list.head(), Some(&2), "incorrect head payload");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_front()"
@@ -558,17 +497,8 @@ mod tests {
             list.push_back(3);
             assert_eq!(list.len(), 3, "bad length after push_back()");
             assert!(list.head().is_some(), "head is None after push_back()");
-            assert_eq!(list.head().unwrap().payload, 2, "incorrect head payload");
-            // assert_eq!(
-            //     list.head().unwrap().next.payload,
-            //     1,
-            //     "incorrect head.next after push_back()"
-            // );
-            assert_eq!(
-                list.last(),
-                Some(&Node::new(3)),
-                "incorrect last after push_back()"
-            );
+            assert_eq!(list.head(), Some(&2), "incorrect head payload");
+            assert_eq!(list.last(), Some(&3), "incorrect last after push_back()");
             assert!(
                 !list.is_empty(),
                 "is_empty() returns `true` after push_back()"
@@ -627,22 +557,14 @@ mod tests {
                 "pop_back() should return last element (3)"
             );
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_back()");
-            assert_eq!(
-                list.last().unwrap().payload,
-                2,
-                "new last element should be 2"
-            );
+            assert_eq!(list.last(), Some(&2), "new last element should be 2");
 
             assert_eq!(list.pop_back(), Some(2), "pop_back() should return 2 next");
             assert_eq!(list.len(), 1, "size should be 1 after second pop_back()");
-            assert_eq!(list.head().unwrap().payload, 1, "head should still be 1");
-            assert_eq!(list.last().unwrap().payload, 1, "last should now be 1");
+            assert_eq!(list.head(), Some(&1), "head should still be 1");
+            assert_eq!(list.last(), Some(&1), "last should now be 1");
 
-            assert_eq!(
-                list.pop_back(),
-                Some(1),
-                "pop_back() should return 1 finally"
-            );
+            assert_eq!(list.pop_back(), Some(1), "pop_back() should return 1 finally");
             assert!(list.is_empty(), "list should be empty after all pop-backs");
         }
 
@@ -686,19 +608,15 @@ mod tests {
                 "pop_front should return first element (1)"
             );
             assert_eq!(list.len(), 2, "size should decrease by 1 after pop_front");
-            assert_eq!(list.head().unwrap().payload, 2, "new head should be 2");
-            assert_eq!(list.last().unwrap().payload, 3, "last should remain 3");
+            assert_eq!(list.head(), Some(&2), "new head should be 2");
+            assert_eq!(list.last(), Some(&3), "last should remain 3");
 
             assert_eq!(list.pop_front(), Some(2), "pop_front should return 2 next");
             assert_eq!(list.len(), 1, "size should be 1 after second pop_front");
-            assert_eq!(list.head().unwrap().payload, 3, "head should now be 3");
-            assert_eq!(list.last().unwrap().payload, 3, "last should also be 3");
+            assert_eq!(list.head(), Some(&3), "head should now be 3");
+            assert_eq!(list.last(), Some(&3), "last should also be 3");
 
-            assert_eq!(
-                list.pop_front(),
-                Some(3),
-                "pop_front should return 3 finally"
-            );
+            assert_eq!(list.pop_front(), Some(3), "pop_front should return 3 finally");
             assert!(list.is_empty(), "list should be empty after all pop_fronts");
         }
     }
@@ -716,8 +634,8 @@ mod tests {
 
             // List: [0, 1, 2]
             assert_eq!(list.len(), 3);
-            assert_eq!(list.head().unwrap().payload, 0);
-            assert_eq!(list.last().unwrap().payload, 2);
+            assert_eq!(list.head(), Some(&0));
+            assert_eq!(list.last(), Some(&2));
 
             assert_eq!(list.pop_front(), Some(0));
             assert_eq!(list.pop_back(), Some(2));
@@ -768,28 +686,28 @@ mod tests {
 
             // push_back(1)
             list.push_back(1);
-            assert_eq!(list.head().unwrap().payload, 1);
-            assert_eq!(list.last().unwrap().payload, 1);
+            assert_eq!(list.head(), Some(&1));
+            assert_eq!(list.last(), Some(&1));
 
             // push_front(0)
             list.push_front(0);
-            assert_eq!(list.head().unwrap().payload, 0);
-            assert_eq!(list.last().unwrap().payload, 1);
+            assert_eq!(list.head(), Some(&0));
+            assert_eq!(list.last(), Some(&1));
 
             // push_back(2)
             list.push_back(2);
-            assert_eq!(list.head().unwrap().payload, 0);
-            assert_eq!(list.last().unwrap().payload, 2);
+            assert_eq!(list.head(), Some(&0));
+            assert_eq!(list.last(), Some(&2));
 
             // pop_front() → removes 0
             list.pop_front();
-            assert_eq!(list.head().unwrap().payload, 1);
-            assert_eq!(list.last().unwrap().payload, 2);
+            assert_eq!(list.head(), Some(&1));
+            assert_eq!(list.last(), Some(&2));
 
             // pop_back() → removes 2
             list.pop_back();
-            assert_eq!(list.head().unwrap().payload, 1);
-            assert_eq!(list.last().unwrap().payload, 1);
+            assert_eq!(list.head(), Some(&1));
+            assert_eq!(list.last(), Some(&1));
 
             // Final pop
             list.pop_front();
@@ -809,8 +727,8 @@ mod tests {
             list.push_back("world".to_string());
 
             assert_eq!(list.len(), 2);
-            assert_eq!(list.head().unwrap().payload, "hello");
-            assert_eq!(list.last().unwrap().payload, "world");
+            assert_eq!(list.head().unwrap(), "hello");
+            assert_eq!(list.last().unwrap(), "world");
 
             assert_eq!(list.pop_front().unwrap(), "hello".to_string());
             assert_eq!(list.pop_back().unwrap(), "world".to_string());
@@ -824,8 +742,8 @@ mod tests {
             list.push_back(vec![3, 4]);
 
             assert_eq!(list.len(), 2);
-            assert_eq!(list.head().unwrap().payload, vec![1, 2]);
-            assert_eq!(list.last().unwrap().payload, vec![3, 4]);
+            assert_eq!(list.head().unwrap(), &vec![1, 2]);
+            assert_eq!(list.last().unwrap(), &vec![3, 4]);
 
             let popped_front = list.pop_front().unwrap();
             assert_eq!(popped_front, vec![1, 2]);
@@ -882,6 +800,89 @@ mod tests {
             let into_collected: Vec<_> = list.into_iter().collect();
             assert_eq!(into_collected, vec![0, 2, 4, 6, 8]);
         }
+
+        #[test]
+        fn test_partial_iteration() {
+            let mut list = List::new();
+            for i in 0..10 {
+                list.push_back(i);
+            }
+
+            {
+                let mut iter = list.iter();
+                // Проходим только первые 3 элемента
+                assert_eq!(iter.next(), Some(&0));
+                assert_eq!(iter.next(), Some(&1));
+                assert_eq!(iter.next(), Some(&2));
+                // Останавливаемся, не проходя до конца
+            }
+
+            // Список должен остаться целым
+            assert_eq!(list.size, 10);
+
+            // Можно начать итерацию заново
+            let first_element = list.iter().next();
+            assert_eq!(first_element, Some(&0));
+        }
+
+        #[test]
+        fn test_concurrent_iterators() {
+            let mut list = List::new();
+            list.push_back(1);
+            list.push_back(2);
+            list.push_back(3);
+
+            // Создаём несколько итераторов одновременно
+            let iter1 = list.iter();
+            let iter2 = list.iter();
+            let mut iter3 = list.iter_mut();
+
+            // Все итераторы должны работать независимо
+            let collect1: Vec<_> = iter1.cloned().collect();
+            let collect2: Vec<_> = iter2.cloned().collect();
+            let first_mut = iter3.next().unwrap();
+            *first_mut = 100;
+
+            assert_eq!(collect1, vec![1, 2, 3]);
+            assert_eq!(collect2, vec![1, 2, 3]);
+            assert_eq!(list.iter().collect::<Vec<_>>(), vec![&100, &2, &3]);
+        }
+
+        #[test]
+        fn test_mutable_iteration_modification() {
+            let mut list = List::new();
+            for i in 1..=3 {
+                list.push_back(i);
+            }
+
+            let mut counter = 0;
+            for item in list.iter_mut() {
+                counter += 1;
+                *item = *item * counter; // Умножаем на номер итерации
+            }
+
+            let result: Vec<_> = list.iter().copied().collect();
+            assert_eq!(result, vec![1, 4, 9]); // 1×1, 2×2, 3×3
+        }
+
+        #[test]
+        fn test_large_list_iteration() {
+            const LARGE_SIZE: usize = 10_000;
+
+            let mut list = List::new();
+            for i in 0..LARGE_SIZE {
+                list.push_back(i);
+            }
+
+            // Полный проход через итератор
+            let sum: usize = list.iter().sum();
+            let expected_sum: usize = (0..LARGE_SIZE).sum();
+            assert_eq!(sum, expected_sum);
+
+            // Частичная итерация с take()
+            let first_10: Vec<_> = list.iter().take(10).copied().collect();
+            assert_eq!(first_10, (0..10).collect::<Vec<_>>());
+        }
     }
 
     mod insert {
@@ -904,16 +905,8 @@ mod tests {
                 "insert at index 0 in empty list should succeed"
             );
             assert_eq!(list.len(), 1, "list size should be 1 after insertion");
-            assert_eq!(
-                list.head().unwrap().payload(),
-                &42,
-                "head should contain inserted value"
-            );
-            assert_eq!(
-                list.last().unwrap().payload(),
-                &42,
-                "last should contain inserted value"
-            );
+            assert_eq!(list.head(), Some(&42), "head should contain inserted value");
+            assert_eq!( list.last(), Some(&42), "last should contain inserted value");
         }
 
         #[test]
@@ -924,7 +917,7 @@ mod tests {
                 "insert at beginning should succeed"
             );
             assert_eq!(list.len(), 4, "size should increase by 1");
-            assert_eq!(list.head().unwrap().payload(), &99, "new head should be 99");
+            assert_eq!(list.head(), Some(&99), "new head should be 99");
             assert_eq!(list.find(&99), Some(0), "find should locate 99 at index 0");
         }
 
@@ -936,11 +929,7 @@ mod tests {
                 "insert at end (index == size) should succeed"
             );
             assert_eq!(list.len(), 3, "size should increase by 1");
-            assert_eq!(
-                list.last().unwrap().payload(),
-                &999,
-                "last element should be 999"
-            );
+            assert_eq!(list.last(), Some(&999), "last element should be 999");
             assert_eq!(list.find(&999), Some(2), "find should locate 999 at index 2");
         }
 
@@ -954,17 +943,11 @@ mod tests {
             assert_eq!(list.len(), 4, "size should increase by 1");
 
             // Verify the order: [0, 50, 1, 2]
-            let mut current = list.head().unwrap();
-            assert_eq!(current.payload(), &0);
-
-            current = current.next().unwrap();
-            assert_eq!(current.payload(), &50);
-
-            current = current.next().unwrap();
-            assert_eq!(current.payload(), &1);
-
-            current = current.next().unwrap();
-            assert_eq!(current.payload(), &2);
+            let mut iter = list.iter();
+            assert_eq!(iter.next(), Some(&0));
+            assert_eq!(iter.next(), Some(&50));
+            assert_eq!(iter.next(), Some(&1));
+            assert_eq!(iter.next(), Some(&2));
         }
 
         #[test]
@@ -1020,14 +1003,10 @@ mod tests {
             assert_eq!(list.len(), 3, "final size should be 3");
 
             // Expected order: [10, 20, 30]
-            let mut current = list.head().unwrap();
-            assert_eq!(current.payload(), &10);
-
-            current = current.next().unwrap();
-            assert_eq!(current.payload(), &20);
-
-            current = current.next().unwrap();
-            assert_eq!(current.payload(), &30);
+            let mut iter = list.iter();
+            assert_eq!(iter.next(), Some(&10));
+            assert_eq!(iter.next(), Some(&20));
+            assert_eq!(iter.next(), Some(&30));
         }
 
         #[test]
@@ -1038,18 +1017,10 @@ mod tests {
             assert!(list.insert(1, 5).is_ok());
 
             // Head should still be the first element
-            assert_eq!(
-                list.head().unwrap().payload(),
-                &0,
-                "head pointer should remain correct"
-            );
+            assert_eq!(list.head(), Some(&0), "head pointer should remain correct");
 
             // Last should still be the last element
-            assert_eq!(
-                list.last().unwrap().payload(),
-                &1,
-                "last pointer should remain correct"
-            );
+            assert_eq!(list.last(), Some(&1), "last pointer should remain correct");
         }
 
         #[test]
@@ -1091,6 +1062,42 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 0);
             assert_eq!(tracker.dropped().count(), 111);
+        }
+
+        #[test]
+        fn test_iterators_with_drop_tracker() {
+            let mut tracker = DropTracker::new();
+
+            let mut list = List::new();
+            for i in 0..5 {
+                list.push_back(tracker.track(i));
+            }
+
+            assert_eq!(tracker.alive().count(), 5);
+
+            // Используем все типы итераторов последовательно
+            {
+                // Итератор по ссылкам
+                let ref_count: usize = list.iter().count();
+                assert_eq!(ref_count, 5);
+            }
+
+            {
+                // Изменяемый итератор (изменяем все элементы)
+                for item in list.iter_mut() {
+                    **item += 10;
+                }
+            }
+
+            {
+                // IntoIterator — забираем владение
+                let collected: Vec<_> = list.into_iter().collect();
+                assert_eq!(collected, vec![10, 11, 12, 13, 14]);
+            }
+
+            // После IntoIterator список уничтожен
+            assert_eq!(tracker.alive().count(), 0);
+            assert_eq!(tracker.dropped().count(), 5);
         }
     }
 }
