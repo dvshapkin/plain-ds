@@ -90,11 +90,25 @@ where
         }
     }
 
-    /// Returns an iterator over the nodes of the list.
-    pub fn iter(&self) -> impl Iterator<Item = &Node<T>> {
+    /// Returns an iterator over the immutable payload values of the list.
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         Iter {
+            current: self.head()
+        }
+    }
+
+    /// Returns an iterator over the mutable payload values of the list.
+    pub fn iter_mut(&self) -> impl Iterator<Item = &mut T> {
+        IterMut {
             current: self.head,
             _marker: Default::default(),
+        }
+    }
+
+    /// Returns an iterator that consumes the list.
+    pub fn into_iter(self) -> impl Iterator<Item = T> {
+        IntoIter {
+            list: self,
         }
     }
 
@@ -224,9 +238,9 @@ where
     /// Finds the first node whose payload is equal to the given one and returns its index.
     /// Returns `None` if there is no such node.
     /// Efficiency: O(n)
-    pub fn find(&self, payload: T) -> Option<usize> {
-        for (index, node) in self.iter().enumerate() {
-            if node.payload == payload {
+    pub fn find(&self, value: &T) -> Option<usize> {
+        for (index, payload) in self.iter().enumerate() {
+            if payload == value {
                 return Some(index);
             }
         }
@@ -256,25 +270,71 @@ pub struct Iter<'a, T>
 where
     T: PartialEq,
 {
-    current: *const Node<T>,
-    _marker: std::marker::PhantomData<&'a T>,
+    current: Option<&'a Node<T>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T>
 where
     T: PartialEq,
 {
-    type Item = &'a Node<T>;
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current.is_none() {
+            None
+        } else {
+            let payload = self.current?.payload();
+            self.current = self.current?.next();
+            Some(payload)
+        }
+    }
+}
+
+pub struct IterMut<'a, T>
+where
+    T: PartialEq,
+{
+    current: *mut Node<T>,
+    _marker: std::marker::PhantomData<&'a T>,
+}
+
+impl<'a, T> Iterator for IterMut<'a, T>
+where
+    T: PartialEq,
+{
+    type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current.is_null() {
             None
         } else {
             unsafe {
-                let old_current = &*self.current;
+                let payload = &mut (*self.current).payload;
                 self.current = (*self.current).next;
-                Some(old_current)
+                Some(payload)
             }
+        }
+    }
+}
+
+pub struct IntoIter<T>
+where
+    T: PartialEq,
+{
+    list: List<T>,
+}
+
+impl<T> Iterator for IntoIter<T>
+where
+    T: PartialEq,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.list.is_empty() {
+            None
+        } else {
+            self.list.pop_front()
         }
     }
 }
@@ -776,7 +836,53 @@ mod tests {
         }
     }
 
+    mod iter {
+        use super::*;
 
+        #[test]
+        fn test_empty_list_iterators() {
+            let list: List<i32> = List::new();
+
+            // Итератор по ссылкам
+            {
+                let mut iter = list.iter();
+                assert_eq!(iter.next(), None);
+            }
+
+            // Изменяемый итератор
+            {
+                let mut iter_mut = list.iter_mut();
+                assert_eq!(iter_mut.next(), None);
+            }
+
+            // IntoIterator (забирает владение)
+            let into_iter = list.into_iter();
+            assert_eq!(into_iter.collect::<Vec<_>>(), Vec::<i32>::new());
+        }
+
+        #[test]
+        fn test_sequential_iteration() {
+            let mut list = List::new();
+            for i in 0..5 {
+                list.push_back(i);
+            }
+
+            // Проверка итератора по ссылкам
+            let collected: Vec<_> = list.iter().collect();
+            assert_eq!(collected, vec![&0, &1, &2, &3, &4]);
+
+            // Проверка изменяемого итератора (изменяем значения)
+            for item in list.iter_mut() {
+                *item *= 2;
+            }
+            let doubled: Vec<_> = list.iter().collect();
+            assert_eq!(doubled, vec![&0, &2, &4, &6, &8]);
+
+            // Проверка IntoIterator
+            let into_collected: Vec<_> = list.into_iter().collect();
+            assert_eq!(into_collected, vec![0, 2, 4, 6, 8]);
+        }
+    }
 
     mod insert {
         use super::*;
@@ -819,7 +925,7 @@ mod tests {
             );
             assert_eq!(list.len(), 4, "size should increase by 1");
             assert_eq!(list.head().unwrap().payload(), &99, "new head should be 99");
-            assert_eq!(list.find(99), Some(0), "find should locate 99 at index 0");
+            assert_eq!(list.find(&99), Some(0), "find should locate 99 at index 0");
         }
 
         #[test]
@@ -835,7 +941,7 @@ mod tests {
                 &999,
                 "last element should be 999"
             );
-            assert_eq!(list.find(999), Some(2), "find should locate 999 at index 2");
+            assert_eq!(list.find(&999), Some(2), "find should locate 999 at index 2");
         }
 
         #[test]
@@ -898,7 +1004,7 @@ mod tests {
             assert_eq!(list.len(), 3, "size should be 3 after insertion");
 
             // Verify order: ["first", "second", "third"]
-            let values: Vec<String> = list.iter().map(|s| s.payload.clone()).collect();
+            let values: Vec<String> = list.iter().map(|payload| payload.clone()).collect();
             assert_eq!(values, vec!["first", "second", "third"]);
         }
 
@@ -954,12 +1060,12 @@ mod tests {
 
             // Insert at beginning (should work)
             assert!(single_element.insert(0, 50).is_ok());
-            assert_eq!(single_element.find(50), Some(0));
-            assert_eq!(single_element.find(100), Some(1));
+            assert_eq!(single_element.find(&50), Some(0));
+            assert_eq!(single_element.find(&100), Some(1));
 
             // Insert at end (should work)
             assert!(single_element.insert(2, 150).is_ok());
-            assert_eq!(single_element.find(150), Some(2));
+            assert_eq!(single_element.find(&150), Some(2));
         }
     }
 
