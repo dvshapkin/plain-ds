@@ -1,5 +1,6 @@
 //! Single-linked list implementation.
 
+
 use std::ptr;
 
 use anyhow::anyhow;
@@ -271,14 +272,13 @@ impl<T> List<T> {
 
 impl<T> Drop for List<T> {
     fn drop(&mut self) {
-        if !self.is_empty() {
-            let mut current = self.head;
+        use std::mem::ManuallyDrop;
+
+        let mut current = ManuallyDrop::new(self.head);
+        while !current.is_null() {
             unsafe {
-                while !(*current).next.is_null() {
-                    let dead = Box::from_raw(current);
-                    current = dead.next;
-                }
-                let _ = Box::from_raw(current);
+                let node = Box::from_raw(ManuallyDrop::take(&mut current));
+                current = ManuallyDrop::new(node.next);
             }
         }
     }
