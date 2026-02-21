@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_empty_list_iterators() {
-        let list: SingleLinkedList<i32> = SingleLinkedList::new();
+        let mut list: SingleLinkedList<i32> = SingleLinkedList::new();
 
         // Итератор по ссылкам
         {
@@ -163,15 +163,13 @@ mod tests {
         list.push_back(3);
 
         // Создаём несколько итераторов одновременно
-        let iter1 = list.iter();
-        let iter2 = list.iter();
-        let mut iter3 = list.iter_mut();
-
-        // Все итераторы должны работать независимо
-        let collect1: Vec<_> = iter1.cloned().collect();
-        let collect2: Vec<_> = iter2.cloned().collect();
-        let first_mut = iter3.next().unwrap();
-        *first_mut = 100;
+        let collect1: Vec<_> = list.iter().cloned().collect();
+        let collect2: Vec<_> = list.iter().cloned().collect();
+        {
+            let mut iter3 = list.iter_mut();
+            let first_mut = iter3.next().unwrap();
+            *first_mut = 100;
+        }
 
         assert_eq!(collect1, vec![1, 2, 3]);
         assert_eq!(collect2, vec![1, 2, 3]);

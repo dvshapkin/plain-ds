@@ -60,7 +60,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns an iterator over the mutable items of the list.
-    pub fn iter_mut(&self) -> impl Iterator<Item = &mut T> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         IterMut::new(self.head)
     }
 
