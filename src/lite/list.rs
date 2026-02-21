@@ -5,18 +5,12 @@ use std::ptr;
 use anyhow::anyhow;
 
 #[derive(PartialEq, Debug)]
-pub struct Node<T>
-where
-    T: PartialEq,
-{
+pub struct Node<T> {
     next: *mut Node<T>, // 8 bytes
     payload: T,         // size_of::<T>() bytes
 }
 
-impl<T> Node<T>
-where
-    T: PartialEq,
-{
+impl<T> Node<T> {
     pub fn new(payload: T) -> Self {
         Self {
             next: ptr::null_mut(),
@@ -37,19 +31,13 @@ where
     }
 }
 
-pub struct List<T>
-where
-    T: PartialEq,
-{
+pub struct List<T> {
     head: *mut Node<T>, // 8 bytes
     last: *mut Node<T>, // 8 bytes
     size: usize,        // 8 bytes
 }
 
-impl<T> List<T>
-where
-    T: PartialEq,
-{
+impl<T> List<T> {
     pub fn new() -> Self {
         Self {
             head: ptr::null_mut(),
@@ -268,7 +256,10 @@ where
     /// Finds the first node whose payload is equal to the given one and returns its index.
     /// Returns `None` if there is no such node.
     /// Efficiency: O(n)
-    pub fn find(&self, value: &T) -> Option<usize> {
+    pub fn find(&self, value: &T) -> Option<usize>
+    where
+        T: PartialEq,
+    {
         for (index, payload) in self.iter().enumerate() {
             if payload == value {
                 return Some(index);
@@ -278,10 +269,7 @@ where
     }
 }
 
-impl<T> Drop for List<T>
-where
-    T: PartialEq,
-{
+impl<T> Drop for List<T> {
     fn drop(&mut self) {
         if !self.is_empty() {
             let mut current = self.head;
@@ -296,17 +284,11 @@ where
     }
 }
 
-pub struct Iter<'a, T>
-where
-    T: PartialEq,
-{
+pub struct Iter<'a, T> {
     current: Option<&'a Node<T>>,
 }
 
-impl<'a, T> Iterator for Iter<'a, T>
-where
-    T: PartialEq,
-{
+impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -320,18 +302,12 @@ where
     }
 }
 
-pub struct IterMut<'a, T>
-where
-    T: PartialEq,
-{
+pub struct IterMut<'a, T> {
     current: *mut Node<T>,
     _marker: std::marker::PhantomData<&'a T>,
 }
 
-impl<'a, T> Iterator for IterMut<'a, T>
-where
-    T: PartialEq,
-{
+impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -347,17 +323,11 @@ where
     }
 }
 
-pub struct IntoIter<T>
-where
-    T: PartialEq,
-{
+pub struct IntoIter<T> {
     list: List<T>,
 }
 
-impl<T> Iterator for IntoIter<T>
-where
-    T: PartialEq,
-{
+impl<T> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
