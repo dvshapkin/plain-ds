@@ -54,6 +54,25 @@ impl<T> SingleLinkedList<T> {
         }
     }
 
+    /// Returns a list item by index, or error if index out of bounds.
+    /// Efficiency: O(n)
+    pub fn get(&self, index: usize) -> anyhow::Result<&T> {
+        if index >= self.size {
+            return Err(anyhow!("index out of bounds"));
+        }
+        if index == 0 {
+            return self.head().ok_or(anyhow!("list is empty"));
+        }
+        if index + 1 == self.size {
+            return self.last().ok_or(anyhow!("list is empty"));
+        }
+
+        // Finding by index
+        self.iter()
+            .nth(index)
+            .ok_or(anyhow!("list is empty"))
+    }
+
     /// Returns an iterator over the immutable items of the list.
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         Iter::new(self.head)
@@ -227,12 +246,20 @@ impl<T> SingleLinkedList<T> {
     where
         T: PartialEq,
     {
-        for (index, payload) in self.iter().enumerate() {
-            if payload == value {
-                return Some(index);
-            }
-        }
-        None
+        self.find_if(|item| item == value)
+    }
+
+    /// Finds the first node whose payload satisfies the predicate and returns its index.
+    /// Returns `None` if there is no such node.
+    /// Efficiency: O(n)
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        self.iter()
+            .enumerate()
+            .find(|(_, item)| predicate(*item))
+            .map(|(index, _)| index)
     }
 }
 
