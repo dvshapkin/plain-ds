@@ -1,3 +1,3 @@
 mod lite;
 
-pub use lite::{List, Node};
+pub use lite::SingleLinkedList;
