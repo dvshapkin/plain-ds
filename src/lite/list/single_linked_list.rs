@@ -37,6 +37,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Collect list values into a vector.
+    ///
     /// Efficiency: O(n)
     pub fn to_vec(&self) -> Vec<T>
     where
@@ -46,6 +47,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns list size.
+    ///
     /// Efficiency: O(1)
     pub fn len(&self) -> usize {
         self.size
@@ -58,6 +60,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns the payload value of the first node in the list.
+    ///
     /// Efficiency: O(1)
     pub fn head(&self) -> Option<&T> {
         if self.head.is_null() {
@@ -68,6 +71,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns the payload value of the last node in the list.
+    ///
     /// Efficiency: O(1)
     pub fn last(&self) -> Option<&T> {
         if self.last.is_null() {
@@ -78,6 +82,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns a list item by index, or error if index out of bounds.
+    ///
     /// Efficiency: O(n)
     pub fn get(&self, index: usize) -> anyhow::Result<&T> {
         if index >= self.size {
@@ -95,6 +100,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns a mutable list item by index, or error if index out of bounds.
+    ///
     /// Efficiency: O(n)
     pub fn get_mut(&mut self, index: usize) -> anyhow::Result<&mut T> {
         if index >= self.size {
@@ -127,6 +133,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Adds a new node to the end of the list.
+    ///
     /// Efficiency: O(1)
     pub fn push_back(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
@@ -140,6 +147,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Adds a new node to the front of the list.
+    ///
     /// Efficiency: O(1)
     pub fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
@@ -153,6 +161,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes a node from the end of the list and returns its payload value.
+    ///
     /// Efficiency: O(n)
     pub fn pop_back(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -192,6 +201,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes a node from the front of the list and returns its payload value.
+    ///
     /// Efficiency: O(1)
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -210,6 +220,7 @@ impl<T> SingleLinkedList<T> {
 
     /// Insert a new node at the specified location in the list.
     /// Error returns, if the index out of bounds.
+    ///
     /// Efficiency: O(n)
     pub fn insert(&mut self, index: usize, payload: T) -> anyhow::Result<()> {
         if index > self.size {
@@ -246,6 +257,7 @@ impl<T> SingleLinkedList<T> {
 
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
+    ///
     /// Efficiency: O(n)
     pub fn remove(&mut self, index: usize) -> anyhow::Result<T> {
         if index >= self.size {
@@ -278,6 +290,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes all items from the list.
+    ///
     /// Efficiency: O(n)
     pub fn clear(&mut self) {
         while self.len() != 0 {
@@ -287,6 +300,7 @@ impl<T> SingleLinkedList<T> {
 
     /// Finds the first node whose payload is equal to the given one and returns its index.
     /// Returns `None` if there is no such node.
+    ///
     /// Efficiency: O(n)
     pub fn find(&self, value: &T) -> Option<usize>
     where
@@ -297,6 +311,7 @@ impl<T> SingleLinkedList<T> {
 
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
+    ///
     /// Efficiency: O(n)
     pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
@@ -309,7 +324,9 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Sorts the list in ascending order using merge sort algorithm.
+    ///
     /// Efficiency: O(n log n)
+    ///
     /// Space complexity: O(log n) due to recursion stack
     pub fn sort(&mut self)
     where
