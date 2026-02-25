@@ -1,6 +1,6 @@
-mod error;
+mod core;
 pub mod fast;
 pub mod light;
 
-pub use error::{DSError, Result};
+pub use core::error::{DSError, Result};
 pub use light::SingleLinkedList;

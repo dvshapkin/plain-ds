@@ -2,10 +2,12 @@
 
 use std::ptr;
 
-use crate::error::{DSError, Result};
-use crate::light::list::iter::{IntoIter, Iter, IterMut};
-use crate::light::list::merge_sort::merge_sort;
-use crate::light::list::node::Node;
+use crate::core::error::{DSError, Result};
+use crate::core::node_one_link::iter::Iter;
+use crate::core::node_one_link::iter_mut::IterMut;
+use crate::core::node_one_link::merge_sort::merge_sort;
+use crate::core::node_one_link::node::Node;
+use crate::light::list::into_iter::IntoIter;
 
 pub struct SingleLinkedList<T> {
     head: *mut Node<T>, // 8 bytes
@@ -87,11 +89,17 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn get(&self, index: usize) -> Result<&T> {
         if index + 1 == self.size {
-            return self.last().ok_or(DSError::IndexOutOfBounds { index, len: self.size });
+            return self.last().ok_or(DSError::IndexOutOfBounds {
+                index,
+                len: self.size,
+            });
         }
 
         // Finding by index
-        self.iter().nth(index).ok_or(DSError::IndexOutOfBounds { index, len: self.size })
+        self.iter().nth(index).ok_or(DSError::IndexOutOfBounds {
+            index,
+            len: self.size,
+        })
     }
 
     /// Returns a mutable list item by index, or error if index out of bounds.
@@ -104,7 +112,10 @@ impl<T> SingleLinkedList<T> {
         }
 
         // Finding by index
-        self.iter_mut().nth(index).ok_or(DSError::IndexOutOfBounds { index, len: list_size })
+        self.iter_mut().nth(index).ok_or(DSError::IndexOutOfBounds {
+            index,
+            len: list_size,
+        })
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -214,7 +225,10 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.size {
-            return Err(DSError::IndexOutOfBounds { index, len: self.size });
+            return Err(DSError::IndexOutOfBounds {
+                index,
+                len: self.size,
+            });
         }
         if index == self.size {
             self.push_back(payload);
@@ -251,7 +265,10 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn remove(&mut self, index: usize) -> Result<T> {
         if index >= self.size {
-            return Err(DSError::IndexOutOfBounds { index, len: self.size });
+            return Err(DSError::IndexOutOfBounds {
+                index,
+                len: self.size,
+            });
         }
         if index == 0 {
             // remove first
@@ -1772,7 +1789,11 @@ mod tests {
 
             list.sort();
 
-            assert_eq!(list.len(), 1, "single element list should have same length after sort()");
+            assert_eq!(
+                list.len(),
+                1,
+                "single element list should have same length after sort()"
+            );
             let values = list.to_vec();
             assert_eq!(values, vec![42], "single element should remain unchanged");
         }
@@ -1785,7 +1806,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 4, 5], "already sorted list should remain sorted");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 4, 5],
+                "already sorted list should remain sorted"
+            );
         }
 
         #[test]
@@ -1796,7 +1821,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 4, 5], "reverse sorted list should become ascending");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 4, 5],
+                "reverse sorted list should become ascending"
+            );
         }
 
         #[test]
@@ -1807,7 +1836,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 1, 2, 3, 4, 5, 6, 9], "random order list should be sorted correctly");
+            assert_eq!(
+                values,
+                vec![1, 1, 2, 3, 4, 5, 6, 9],
+                "random order list should be sorted correctly"
+            );
         }
 
         #[test]
@@ -1818,7 +1851,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 1, 2, 2, 3, 3], "list with duplicates should be sorted with duplicates preserved");
+            assert_eq!(
+                values,
+                vec![1, 1, 2, 2, 3, 3],
+                "list with duplicates should be sorted with duplicates preserved"
+            );
         }
 
         #[test]
@@ -1829,7 +1866,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2], "two elements should be sorted in ascending order");
+            assert_eq!(
+                values,
+                vec![1, 2],
+                "two elements should be sorted in ascending order"
+            );
         }
 
         #[test]
@@ -1840,7 +1881,11 @@ mod tests {
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2], "already sorted two elements should remain the same");
+            assert_eq!(
+                values,
+                vec![1, 2],
+                "already sorted two elements should remain the same"
+            );
         }
 
         #[test]
@@ -1878,12 +1923,20 @@ mod tests {
             list.push_back(2);
 
             // List should now be [5, 3, 2]
-            assert_eq!(list.len(), 3, "list should have 3 elements after mixed operations");
+            assert_eq!(
+                list.len(),
+                3,
+                "list should have 3 elements after mixed operations"
+            );
 
             list.sort();
 
             let values = list.to_vec();
-            assert_eq!(values, vec![2, 3, 5], "list after mixed operations should be sorted correctly");
+            assert_eq!(
+                values,
+                vec![2, 3, 5],
+                "list after mixed operations should be sorted correctly"
+            );
         }
 
         #[test]
@@ -1902,7 +1955,12 @@ mod tests {
 
             assert_eq!(
                 values,
-                vec!["apple".to_string(), "banana".to_string(), "cherry".to_string(), "zebra".to_string()],
+                vec![
+                    "apple".to_string(),
+                    "banana".to_string(),
+                    "cherry".to_string(),
+                    "zebra".to_string()
+                ],
                 "string list should be sorted alphabetically"
             );
         }
@@ -1915,7 +1973,10 @@ mod tests {
 
             // Verify that last pointer is correctly set to the last node
             let last_value = unsafe { (*list.last).payload };
-            assert_eq!(last_value, 4, "last pointer should point to the maximum element after sorting");
+            assert_eq!(
+                last_value, 4,
+                "last pointer should point to the maximum element after sorting"
+            );
         }
     }
 
