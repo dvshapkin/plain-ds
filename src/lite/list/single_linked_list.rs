@@ -42,7 +42,9 @@ impl<T> SingleLinkedList<T> {
     where
         T: Clone,
     {
-        self.iter().map(|item| (*item).clone()).collect()
+        let mut vec = Vec::with_capacity(self.size);
+        vec.extend(self.iter().cloned());
+        vec
     }
 
     /// Returns list size.
@@ -1764,19 +1766,6 @@ mod tests {
     mod sort {
         use super::*;
 
-        /// Helper function to collect list values into a vector for easy comparison
-        fn list_to_vec(list: &SingleLinkedList<i32>) -> Vec<i32> {
-            let mut result = Vec::new();
-            let mut current = list.head;
-            while !current.is_null() {
-                unsafe {
-                    result.push((*current).payload);
-                    current = (*current).next;
-                }
-            }
-            result
-        }
-
         #[test]
         fn test_sort_empty_list() {
             let mut list = SingleLinkedList::<i32>::new();
@@ -1797,7 +1786,7 @@ mod tests {
             list.sort();
 
             assert_eq!(list.len(), 1, "single element list should have same length after sort()");
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![42], "single element should remain unchanged");
         }
 
@@ -1808,7 +1797,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2, 3, 4, 5], "already sorted list should remain sorted");
         }
 
@@ -1819,7 +1808,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2, 3, 4, 5], "reverse sorted list should become ascending");
         }
 
@@ -1830,7 +1819,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 1, 2, 3, 4, 5, 6, 9], "random order list should be sorted correctly");
         }
 
@@ -1841,7 +1830,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 1, 2, 2, 3, 3], "list with duplicates should be sorted with duplicates preserved");
         }
 
@@ -1852,7 +1841,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2], "two elements should be sorted in ascending order");
         }
 
@@ -1863,7 +1852,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2], "already sorted two elements should remain the same");
         }
 
@@ -1886,7 +1875,7 @@ mod tests {
             list.sort();
 
             let sorted_data: Vec<i32> = (1..=1000).collect();
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, sorted_data, "large list should be sorted correctly");
         }
 
@@ -1906,7 +1895,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![2, 3, 5], "list after mixed operations should be sorted correctly");
         }
 
