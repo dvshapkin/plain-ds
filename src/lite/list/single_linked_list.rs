@@ -1954,27 +1954,25 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 5);
 
-            // Используем все типы итераторов последовательно
+            // Use all types of iterators sequentially
             {
                 // Итератор по ссылкам
                 let ref_count: usize = list.iter().count();
                 assert_eq!(ref_count, 5);
             }
-
             {
-                // Изменяемый итератор (изменяем все элементы)
+                // Mutable iterator (modify all elements)
                 for item in list.iter_mut() {
                     **item += 10;
                 }
             }
-
             {
-                // IntoIterator — забираем владение
+                // IntoIterator — take ownership
                 let collected: Vec<_> = list.into_iter().collect();
                 assert_eq!(collected, vec![10, 11, 12, 13, 14]);
             }
 
-            // После IntoIterator список уничтожен
+            // After IntoIterator the list is destroyed
             assert_eq!(tracker.alive().count(), 0);
             assert_eq!(tracker.dropped().count(), 5);
         }
@@ -1994,10 +1992,10 @@ mod tests {
                 "50 elements should be alive after push_back"
             );
 
-            // Удаляем элементы с разных позиций
+            // Removing elements from different positions
             assert_eq!(list.remove(0).unwrap(), 0);
-            assert_eq!(list.remove(48).unwrap(), 49); // последний элемент
-            assert_eq!(list.remove(24).unwrap(), 25); // средний элемент
+            assert_eq!(list.remove(48).unwrap(), 49); // last item
+            assert_eq!(list.remove(24).unwrap(), 25); // middle item
 
             assert_eq!(
                 tracker.alive().count(),
@@ -2005,7 +2003,7 @@ mod tests {
                 "After removing 3 elements, 47 should remain alive"
             );
 
-            // Полностью очищаем список
+            // Clear the list completely
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
@@ -2036,7 +2034,7 @@ mod tests {
                 "2 elements should be alive initially"
             );
 
-            // Вставляем элемент в середину
+            // Insert an element into the middle
             list.insert(1, tracker.track(2)).unwrap();
 
             assert_eq!(
@@ -2045,7 +2043,7 @@ mod tests {
                 "3 elements should be alive after insert"
             );
 
-            // Вставляем в начало и конец
+            // Insert at the beginning and end
             list.insert(0, tracker.track(0)).unwrap();
             list.insert(3, tracker.track(4)).unwrap();
 
@@ -2080,7 +2078,7 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 20, "20 elements should be alive");
 
-            // Выполняем несколько операций удаления и добавления
+            // Perform several deletion and addition operations
             for _ in 0..5 {
                 let _ = list.pop_back();
             }
@@ -2119,7 +2117,7 @@ mod tests {
 
             impl Drop for ComplexStruct {
                 fn drop(&mut self) {
-                    // Просто отмечаем удаление
+                    // Just mark the deletion
                 }
             }
 
@@ -2137,7 +2135,7 @@ mod tests {
                 "15 ComplexStruct elements should be alive"
             );
 
-            // Удаляем несколько элементов
+            // Deleting multiple elements
             for _ in 0..3 {
                 let _ = list.pop_front();
             }
@@ -2173,10 +2171,10 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 10, "10 elements should be alive");
 
-            // Попытка удаления по неверному индексу (не должна вызывать утечек)
+            // Attempted to delete at an invalid index (should not cause leaks)
             assert!(list.remove(15).is_err());
 
-            // Попытка вставки по неверному индексу
+            // Attempt to insert at invalid index
             assert!(list.insert(15, tracker.track(99)).is_err());
 
             assert_eq!(
@@ -2185,12 +2183,12 @@ mod tests {
                 "10 elements should be alive (10 original + 1 attempted insert)"
             );
 
-            // Очищаем список
+            // Clearing the list
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
 
-            drop(list); // Явное удаление
+            drop(list); // Explicit deletion
 
             assert_eq!(
                 tracker.alive().count(),
