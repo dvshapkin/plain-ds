@@ -2,8 +2,7 @@
 
 use std::ptr;
 
-use anyhow::anyhow;
-
+use crate::lite::list::error::{ListError, Result};
 use crate::lite::list::iter::{IntoIter, Iter, IterMut};
 use crate::lite::list::merge_sort::merge_sort;
 use crate::lite::list::node::Node;
@@ -84,37 +83,39 @@ impl<T> SingleLinkedList<T> {
     /// Returns a list item by index, or error if index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn get(&self, index: usize) -> anyhow::Result<&T> {
+    pub fn get(&self, index: usize) -> Result<&T> {
         if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
+            //return Err(anyhow!("index out of bounds"));
+            return Err(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index == 0 {
-            return self.head().ok_or(anyhow!("list is empty"));
+            return self.head().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index + 1 == self.size {
-            return self.last().ok_or(anyhow!("list is empty"));
+            return self.last().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
         }
 
         // Finding by index
-        self.iter().nth(index).ok_or(anyhow!("list is empty"))
+        self.iter().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: self.size })
     }
 
     /// Returns a mutable list item by index, or error if index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn get_mut(&mut self, index: usize) -> anyhow::Result<&mut T> {
-        if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
+    pub fn get_mut(&mut self, index: usize) -> Result<&mut T> {
+        let list_size = self.size;
+        if index >= list_size {
+            return Err(ListError::IndexOutOfBounds { index, len: list_size });
         }
         if index == 0 {
             return Ok(unsafe { &mut (*self.head).payload });
         }
-        if index + 1 == self.size {
+        if index + 1 == list_size {
             return Ok(unsafe { &mut (*self.last).payload });
         }
 
         // Finding by index
-        self.iter_mut().nth(index).ok_or(anyhow!("list is empty"))
+        self.iter_mut().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: list_size })
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -222,9 +223,9 @@ impl<T> SingleLinkedList<T> {
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn insert(&mut self, index: usize, payload: T) -> anyhow::Result<()> {
+    pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.size {
-            return Err(anyhow!("index out of bounds"));
+            return Err(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index == self.size {
             self.push_back(payload);
@@ -259,9 +260,9 @@ impl<T> SingleLinkedList<T> {
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn remove(&mut self, index: usize) -> anyhow::Result<T> {
+    pub fn remove(&mut self, index: usize) -> Result<T> {
         if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
+            return Err(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index == 0 {
             // remove first
