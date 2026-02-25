@@ -254,6 +254,14 @@ impl<T> SingleLinkedList<T> {
         Ok(removed.payload)
     }
 
+    /// Removes all items from the list.
+    /// Efficiency: O(n)
+    pub fn clear(&mut self) {
+        while self.len() != 0 {
+            let _ = self.pop_front();
+        }
+    }
+
     /// Finds the first node whose payload is equal to the given one and returns its index.
     /// Returns `None` if there is no such node.
     /// Efficiency: O(n)
@@ -1341,6 +1349,167 @@ mod tests {
         }
     }
 
+    mod clear_tests {
+        use super::*;
+
+        #[test]
+        fn test_clear_empty_list() {
+            let mut list = SingleLinkedList::<u8>::new();
+            assert!(list.is_empty(), "list should be empty initially");
+
+            list.clear();
+
+            assert!(list.is_empty(), "clear() on empty list should leave it empty");
+            assert_eq!(list.len(), 0, "length should remain 0 after clear() on empty list");
+            assert_eq!(list.head(), None, "head should be None after clear() on empty list");
+            assert_eq!(list.last(), None, "last should be None after clear() on empty list");
+        }
+
+        #[test]
+        fn test_clear_single_element_list() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(42);
+            assert!(!list.is_empty(), "list should not be empty before clear()");
+            assert_eq!(list.len(), 1, "list should have length 1 before clear()");
+
+            list.clear();
+
+            assert!(list.is_empty(), "list should be empty after clear()");
+            assert_eq!(list.len(), 0, "length should be 0 after clear()");
+            assert_eq!(list.head(), None, "head should be None after clear()");
+            assert_eq!(list.last(), None, "last should be None after clear()");
+        }
+
+        #[test]
+        fn test_clear_multiple_elements_list() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+            assert_eq!(list.len(), 3, "list should have 3 elements before clear()");
+
+            list.clear();
+
+            assert!(list.is_empty(), "list should be empty after clearing multiple elements");
+            assert_eq!(list.len(), 0, "length should be 0 after clearing multiple elements");
+            assert_eq!(list.head(), None, "head should be None after clearing multiple elements");
+            assert_eq!(list.last(), None, "last should be None after clearing multiple elements");
+        }
+
+        #[test]
+        fn test_clear_then_reuse_list() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(1);
+            list.push_back(2);
+
+            list.clear();
+            assert!(list.is_empty(), "list should be empty after clear()");
+
+            // Reuse the list after clearing
+            list.push_back(100);
+            list.push_back(200);
+
+            assert_eq!(list.len(), 2, "list should accept new elements after clear()");
+            assert_eq!(*list.head().unwrap(), 100, "new head should be 100");
+            assert_eq!(*list.last().unwrap(), 200, "new last should be 200");
+        }
+
+        #[test]
+        fn test_clear_with_complex_types() {
+            // Test with String
+            let mut string_list = SingleLinkedList::new();
+            string_list.push_back("apple".to_string());
+            string_list.push_back("banana".to_string());
+
+            string_list.clear();
+            assert!(string_list.is_empty(), "string list should be empty after clear()");
+            assert_eq!(string_list.len(), 0, "string list length should be 0 after clear()");
+
+            // Test with Vec
+            let mut vec_list = SingleLinkedList::new();
+            vec_list.push_back(vec![1, 2]);
+            vec_list.push_back(vec![3, 4]);
+
+            vec_list.clear();
+            assert!(vec_list.is_empty(), "vec list should be empty after clear()");
+            assert_eq!(vec_list.len(), 0, "vec list length should be 0 after clear()");
+        }
+
+        #[test]
+        fn test_clear_preserves_list_integrity() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(5);
+            list.push_back(10);
+            list.push_back(15);
+
+            let initial_len = list.len();
+            let head_before = list.head().cloned();
+            let last_before = list.last().cloned();
+            assert_eq!(initial_len, 3);
+            assert_eq!(head_before.unwrap(), 5);
+            assert_eq!(last_before.unwrap(), 15);
+
+            list.clear();
+
+            // Verify the list is properly cleared
+            assert!(list.is_empty(), "list should be empty after clear()");
+            assert_eq!(list.len(), 0, "length should be 0 after clear()");
+            assert_eq!(list.head(), None, "head should be None after clear()");
+            assert_eq!(list.last(), None, "last should be None after clear()");
+
+            // Ensure we can create a new list and it works correctly
+            let mut new_list = SingleLinkedList::new();
+            new_list.push_back(100);
+            assert_eq!(new_list.len(), 1, "new list should work correctly after previous clear()");
+        }
+
+        #[test]
+        fn test_clear_performance_consistency() {
+            // Test that clear() works correctly regardless of list size
+            for size in &[0, 1, 5, 10, 100] {
+                let mut list = SingleLinkedList::new();
+
+                // Fill list with values
+                for i in 0..*size {
+                    list.push_back(i);
+                }
+
+                assert_eq!(list.len(), *size, "list should have correct length before clear() for size {}", size);
+
+                list.clear();
+
+                assert!(list.is_empty(), "list of size {} should be empty after clear()", size);
+                assert_eq!(list.len(), 0, "list of size {} should have length 0 after clear()", size);
+                assert_eq!(list.head(), None, "head should be None for cleared list of size {}", size);
+                assert_eq!(list.last(), None, "last should be None for cleared list of size {}", size);
+            }
+        }
+
+        #[test]
+        fn test_clear_after_mixed_operations() {
+            let mut list = SingleLinkedList::new();
+
+            // Perform various operations
+            list.push_back(1);
+            list.push_front(0);
+            list.push_back(2);
+            list.pop_front(); // removes 0
+            list.push_back(3);
+
+            // List should now be [1, 2, 3]
+            assert_eq!(list.len(), 3, "list should have 3 elements after mixed operations");
+            assert_eq!(*list.head().unwrap(), 1, "head should be 1 after mixed operations");
+            assert_eq!(*list.last().unwrap(), 3, "last should be 3 after mixed operations");
+
+            list.clear();
+
+            assert!(list.is_empty(), "list should be empty after clear() following mixed operations");
+            assert_eq!(list.len(), 0, "length should be 0 after clear() following mixed operations");
+            assert_eq!(list.head(), None, "head should be None after clear() following mixed operations");
+            assert_eq!(list.last(), None, "last should be None after clear() following mixed operations");
+        }
+    }
+
     mod memory_leaks {
         use super::*;
         use drop_tracker::DropTracker;
@@ -1623,6 +1792,120 @@ mod tests {
                 tracker.dropped().count(),
                 11,
                 "All 11 elements should have been dropped"
+            );
+        }
+
+        // Test that clear() properly frees all nodes and there's no memory leak
+        #[test]
+        fn test_clear_no_memory_leak_with_drop_tracker() {
+            // Create a list with tracked nodes
+            let mut list = SingleLinkedList::new();
+            let mut tracker = DropTracker::new();
+
+            // Add several elements — each will be wrapped in DropTracker
+            list.push_back(tracker.track(10));
+            list.push_back(tracker.track(20));
+            list.push_back(tracker.track(30));
+            list.push_back(tracker.track(40));
+            list.push_back(tracker.track(50));
+
+            assert_eq!(list.len(), 5, "list should have 5 elements before clear()");
+            assert_eq!(tracker.alive().count(), 5, "no nodes should be dropped yet");
+
+            // Clear the list — all nodes should be freed and their Drop impl called
+            list.clear();
+
+            assert!(list.is_empty(), "list should be empty after clear()");
+            assert_eq!(list.len(), 0, "length should be 0 after clear()");
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "all 5 nodes should be dropped during clear()"
+            );
+
+            assert_eq!(
+                tracker.dropped().count(),
+                5,
+                "no additional drops should happen after list destruction"
+            );
+        }
+
+        // Test memory cleanup when clear() is called on a list with complex types
+        #[test]
+        fn test_clear_complex_types_no_memory_leak() {
+            let mut list = SingleLinkedList::new();
+            let mut tracker = DropTracker::new();
+
+            // Use DropTracker with String type
+            list.push_back(tracker.track("first".to_string()));
+            list.push_back(tracker.track("second".to_string()));
+            list.push_back(tracker.track("third".to_string()));
+
+            assert_eq!(list.len(), 3, "complex type list should have correct size");
+            assert_eq!(tracker.alive().count(), 3, "no drops before clear()");
+
+            list.clear();
+
+            assert!(list.is_empty(), "complex type list should be empty after clear()");
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "all 3 complex nodes should be dropped during clear()"
+            );
+
+            assert_eq!(
+                tracker.dropped().count(),
+                3,
+                "no extra drops after complex list destruction"
+            );
+        }
+
+        // Test that clear() works correctly even if some nodes were already dropped
+        // through other operations
+        #[test]
+        fn test_clear_after_partial_removal_no_leak() {
+            let mut list = SingleLinkedList::new();
+            let mut tracker = DropTracker::new();
+
+            // Add 4 elements
+            list.push_back(tracker.track(1));
+            list.push_back(tracker.track(2));
+            list.push_back(tracker.track(3));
+            list.push_back(tracker.track(4));
+
+            assert_eq!(list.len(), 4, "initial list size should be 4");
+            assert_eq!(tracker.alive().count(), 4, "no drops at start");
+
+            // Remove two elements manually
+            let _ = list.pop_front(); // drops element 1
+            let _ = list.pop_back();  // drops element 4
+
+            assert_eq!(list.len(), 2, "list size should be 2 after partial removal");
+            assert_eq!(
+                tracker.alive().count(),
+                2,
+                "2 nodes should be dropped by pop_front and pop_back"
+            );
+            assert_eq!(
+                tracker.dropped().count(),
+                2,
+                "2 nodes should be dropped by pop_front and pop_back"
+            );
+
+            // Now clear the remaining two elements
+            list.clear();
+
+            assert!(list.is_empty(), "list should be empty after final clear()");
+            assert_eq!(
+                tracker.alive().count(),
+                0,
+                "total 4 nodes should be dropped (2 by pop, 2 by clear)"
+            );
+
+            assert_eq!(
+                tracker.dropped().count(),
+                4,
+                "no extra drops after list destruction"
             );
         }
     }
