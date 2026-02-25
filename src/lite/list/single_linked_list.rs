@@ -1,4 +1,4 @@
-//! Single-linked list implementation.
+//! This module contains single-linked list implementation.
 
 use std::ptr;
 
@@ -15,12 +15,34 @@ pub struct SingleLinkedList<T> {
 }
 
 impl<T> SingleLinkedList<T> {
+    /// Creates empty list.
     pub fn new() -> Self {
         Self {
             head: ptr::null_mut(),
             last: ptr::null_mut(),
             size: 0,
         }
+    }
+
+    /// Creates list from slice.
+    pub fn from_slice(slice: &[T]) -> Self
+    where
+        T: Clone,
+    {
+        let mut list = SingleLinkedList::new();
+        for value in slice {
+            list.push_back((*value).clone());
+        }
+        list
+    }
+
+    /// Collect list values into a vector.
+    /// Efficiency: O(n)
+    pub fn to_vec(&self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        self.iter().map(|item| (*item).clone()).collect()
     }
 
     /// Returns list size.
@@ -1727,15 +1749,6 @@ mod tests {
     mod sort {
         use super::*;
 
-        /// Helper function to create a list from a slice of values
-        fn create_list_from_slice(values: &[i32]) -> SingleLinkedList<i32> {
-            let mut list = SingleLinkedList::new();
-            for &value in values {
-                list.push_back(value);
-            }
-            list
-        }
-
         /// Helper function to collect list values into a vector for easy comparison
         fn list_to_vec(list: &SingleLinkedList<i32>) -> Vec<i32> {
             let mut result = Vec::new();
@@ -1775,7 +1788,7 @@ mod tests {
 
         #[test]
         fn test_sort_already_sorted() {
-            let mut list = create_list_from_slice(&[1, 2, 3, 4, 5]);
+            let mut list = SingleLinkedList::from_slice(&[1, 2, 3, 4, 5]);
             assert_eq!(list.len(), 5, "list should have 5 elements");
 
             list.sort();
@@ -1786,7 +1799,7 @@ mod tests {
 
         #[test]
         fn test_sort_reverse_sorted() {
-            let mut list = create_list_from_slice(&[5, 4, 3, 2, 1]);
+            let mut list = SingleLinkedList::from_slice(&[5, 4, 3, 2, 1]);
             assert_eq!(list.len(), 5, "list should have 5 elements");
 
             list.sort();
@@ -1797,7 +1810,7 @@ mod tests {
 
         #[test]
         fn test_sort_random_order() {
-            let mut list = create_list_from_slice(&[3, 1, 4, 1, 5, 9, 2, 6]);
+            let mut list = SingleLinkedList::from_slice(&[3, 1, 4, 1, 5, 9, 2, 6]);
             assert_eq!(list.len(), 8, "list should have 8 elements");
 
             list.sort();
@@ -1808,7 +1821,7 @@ mod tests {
 
         #[test]
         fn test_sort_with_duplicates() {
-            let mut list = create_list_from_slice(&[2, 2, 1, 1, 3, 3]);
+            let mut list = SingleLinkedList::from_slice(&[2, 2, 1, 1, 3, 3]);
             assert_eq!(list.len(), 6, "list should have 6 elements");
 
             list.sort();
@@ -1819,7 +1832,7 @@ mod tests {
 
         #[test]
         fn test_sort_two_elements_unsorted() {
-            let mut list = create_list_from_slice(&[2, 1]);
+            let mut list = SingleLinkedList::from_slice(&[2, 1]);
             assert_eq!(list.len(), 2, "list should have 2 elements");
 
             list.sort();
@@ -1830,7 +1843,7 @@ mod tests {
 
         #[test]
         fn test_sort_two_elements_sorted() {
-            let mut list = create_list_from_slice(&[1, 2]);
+            let mut list = SingleLinkedList::from_slice(&[1, 2]);
             assert_eq!(list.len(), 2, "list should have 2 elements");
 
             list.sort();
@@ -1905,7 +1918,7 @@ mod tests {
 
         #[test]
         fn test_sort_preserves_last_pointer() {
-            let mut list = create_list_from_slice(&[3, 1, 4, 2]);
+            let mut list = SingleLinkedList::from_slice(&[3, 1, 4, 2]);
 
             list.sort();
 
