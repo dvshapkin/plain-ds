@@ -1,5 +1,5 @@
 Plain Data Structures
-===========================
+=====================
 
 [![Latest version](https://img.shields.io/crates/v/plain-ds.svg)](https://crates.io/crates/plain-ds)
 ![License](https://img.shields.io/crates/l/plain-ds.svg)
@@ -24,9 +24,11 @@ cargo add plain-ds
 ```
 
 ## What's new in last version?
-### [0.1.0]
+
+### [0.2.0]
+
 ### Added
-- `SingleLinkedList` lite implementation
+- `OrderedList` fast implementation
 
 ## Overview
 
@@ -41,13 +43,23 @@ and efficiency of existing DS.
 - **Quality and hi-coverage of testing**: Completeness and thoughtfulness of tests.
 - **Clarity**: Detailed error messages and up-to-date documentation.
 
+## Light vs Fast implementation
+
+All DS are placed in two modules: `light` and `fast`.
+The **light** implementation has the primary goal of minimizing memory consumption, possibly at the expense 
+of some performance tradeoffs.
+On the contrary, the main goal of a **fast** implementation is to provide good performance (possibly at the expense 
+of increased memory consumption).
+
 ## Contributing
+
 We welcome:
 * Bug reports
 * Feature requests
 * Documentation improvements
 
 ## Contact & Links
+
 * Repository: https://github.com/dvshapkin/plain-ds
 * Issues: https://github.com/dvshapkin/plain-ds/issues
 * Documentation: https://docs.rs/plain-ds

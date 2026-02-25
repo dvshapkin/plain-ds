@@ -1,3 +1,6 @@
-mod lite;
+mod error;
+pub mod fast;
+pub mod light;
 
-pub use lite::SingleLinkedList;
+pub use error::{DSError, Result};
+pub use light::SingleLinkedList;

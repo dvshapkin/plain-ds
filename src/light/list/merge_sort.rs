@@ -1,4 +1,4 @@
-use crate::lite::list::node::Node;
+use crate::light::list::node::Node;
 
 /// Merge sort implementation for linked list nodes
 pub fn merge_sort<T>(head: *mut Node<T>) -> *mut Node<T>

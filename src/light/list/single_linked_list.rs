@@ -2,10 +2,10 @@
 
 use std::ptr;
 
-use crate::lite::list::error::{ListError, Result};
-use crate::lite::list::iter::{IntoIter, Iter, IterMut};
-use crate::lite::list::merge_sort::merge_sort;
-use crate::lite::list::node::Node;
+use crate::error::{DSError, Result};
+use crate::light::list::iter::{IntoIter, Iter, IterMut};
+use crate::light::list::merge_sort::merge_sort;
+use crate::light::list::node::Node;
 
 pub struct SingleLinkedList<T> {
     head: *mut Node<T>, // 8 bytes
@@ -87,11 +87,11 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn get(&self, index: usize) -> Result<&T> {
         if index + 1 == self.size {
-            return self.last().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
+            return self.last().ok_or(DSError::IndexOutOfBounds { index, len: self.size });
         }
 
         // Finding by index
-        self.iter().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: self.size })
+        self.iter().nth(index).ok_or(DSError::IndexOutOfBounds { index, len: self.size })
     }
 
     /// Returns a mutable list item by index, or error if index out of bounds.
@@ -104,7 +104,7 @@ impl<T> SingleLinkedList<T> {
         }
 
         // Finding by index
-        self.iter_mut().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: list_size })
+        self.iter_mut().nth(index).ok_or(DSError::IndexOutOfBounds { index, len: list_size })
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -214,7 +214,7 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.size {
-            return Err(ListError::IndexOutOfBounds { index, len: self.size });
+            return Err(DSError::IndexOutOfBounds { index, len: self.size });
         }
         if index == self.size {
             self.push_back(payload);
@@ -251,7 +251,7 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn remove(&mut self, index: usize) -> Result<T> {
         if index >= self.size {
-            return Err(ListError::IndexOutOfBounds { index, len: self.size });
+            return Err(DSError::IndexOutOfBounds { index, len: self.size });
         }
         if index == 0 {
             // remove first
