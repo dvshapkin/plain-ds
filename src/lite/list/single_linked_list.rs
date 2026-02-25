@@ -68,9 +68,24 @@ impl<T> SingleLinkedList<T> {
         }
 
         // Finding by index
-        self.iter()
-            .nth(index)
-            .ok_or(anyhow!("list is empty"))
+        self.iter().nth(index).ok_or(anyhow!("list is empty"))
+    }
+
+    /// Returns a mutable list item by index, or error if index out of bounds.
+    /// Efficiency: O(n)
+    pub fn get_mut(&mut self, index: usize) -> anyhow::Result<&mut T> {
+        if index >= self.size {
+            return Err(anyhow!("index out of bounds"));
+        }
+        if index == 0 {
+            return Ok(unsafe { &mut (*self.head).payload });
+        }
+        if index + 1 == self.size {
+            return Ok(unsafe { &mut (*self.last).payload });
+        }
+
+        // Finding by index
+        self.iter_mut().nth(index).ok_or(anyhow!("list is empty"))
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -303,6 +318,323 @@ mod tests {
 
         let list: SingleLinkedList<&[char]> = SingleLinkedList::new();
         assert!(list.is_empty(), "is_empty() returns `false` after creation");
+    }
+
+    mod get {
+        use super::*;
+
+        #[test]
+        fn test_get_empty_list() {
+            let list: SingleLinkedList<i32> = SingleLinkedList::new();
+            assert!(
+                list.get(0).is_err(),
+                "get() on empty list should return error"
+            );
+            assert!(
+                list.get(1).is_err(),
+                "get() with any index on empty list should return error"
+            );
+        }
+
+        #[test]
+        fn test_get_index_out_of_bounds() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+
+            assert!(
+                list.get(3).is_err(),
+                "get() with index == size should return error (out of bounds)"
+            );
+            assert!(
+                list.get(4).is_err(),
+                "get() with index > size should return error"
+            );
+            assert!(
+                list.get(100).is_err(),
+                "get() with large out-of-bounds index should return error"
+            );
+        }
+
+        #[test]
+        fn test_get_first_element() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(100);
+            list.push_back(200);
+            list.push_back(300);
+
+            let result = list.get(0).unwrap();
+            assert_eq!(*result, 100, "get(0) should return first element (100)");
+        }
+
+        #[test]
+        fn test_get_last_element() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(100);
+            list.push_back(200);
+            list.push_back(300);
+
+            let result = list.get(2).unwrap(); // index = size - 1
+            assert_eq!(
+                *result, 300,
+                "get(last_index) should return last element (300)"
+            );
+        }
+
+        #[test]
+        fn test_get_middle_element() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+            list.push_back(40);
+            list.push_back(50);
+
+            let result = list.get(2).unwrap(); // middle element
+            assert_eq!(*result, 30, "get(2) should return middle element (30)");
+
+            let result2 = list.get(1).unwrap();
+            assert_eq!(*result2, 20, "get(1) should return second element (20)");
+        }
+
+        #[test]
+        fn test_get_single_element_list() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(42);
+
+            let result = list.get(0).unwrap();
+            assert_eq!(
+                *result, 42,
+                "get(0) on single-element list should return that element"
+            );
+
+            assert!(
+                list.get(1).is_err(),
+                "get(1) on single-element list should be out of bounds"
+            );
+        }
+
+        #[test]
+        fn test_get_with_complex_types() {
+            // Test with String
+            let mut string_list = SingleLinkedList::new();
+            string_list.push_back("apple".to_string());
+            string_list.push_back("banana".to_string());
+            string_list.push_back("cherry".to_string());
+
+            let first = string_list.get(0).unwrap();
+            assert_eq!(first, "apple", "get(0) should return 'apple'");
+
+            let last = string_list.get(2).unwrap();
+            assert_eq!(last, "cherry", "get(2) should return 'cherry'");
+
+            // Test with Vec
+            let mut vec_list = SingleLinkedList::new();
+            vec_list.push_back(vec![1, 2]);
+            vec_list.push_back(vec![3, 4]);
+
+            let vec_result = vec_list.get(1).unwrap();
+            assert_eq!(vec_result, &vec![3, 4], "get(1) should return vec![3, 4]");
+        }
+
+        #[test]
+        fn test_get_preserves_list_integrity() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(1);
+            list.push_back(2);
+            list.push_back(3);
+
+            // Get element in the middle
+            let _ = list.get(1).unwrap();
+
+            // Verify list is unchanged
+            assert_eq!(
+                list.len(),
+                3,
+                "list length should remain unchanged after get()"
+            );
+            assert_eq!(list.head(), Some(&1), "head should remain the same");
+            assert_eq!(list.last(), Some(&3), "last should remain the same");
+
+            // Verify we can still get other elements
+            assert_eq!(
+                *list.get(0).unwrap(),
+                1,
+                "get(0) after get(1) should still work"
+            );
+            assert_eq!(
+                *list.get(2).unwrap(),
+                3,
+                "get(2) after get(1) should still work"
+            );
+        }
+
+        #[test]
+        fn test_get_mut_empty_list() {
+            let mut list:SingleLinkedList<i32> =SingleLinkedList::new();
+            assert!(list.get_mut(0).is_err(), "get_mut() on empty list should return error");
+        }
+
+        #[test]
+        fn test_get_mut_index_out_of_bounds() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+
+            assert!(list.get_mut(2).is_err(), "get_mut() with index == size should return error");
+            assert!(list.get_mut(5).is_err(), "get_mut() with large out-of-bounds index should return error");
+        }
+
+        #[test]
+        fn test_get_mut_first_element() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(100);
+            list.push_back(200);
+            list.push_back(300);
+
+            let mut_ref = list.get_mut(0).unwrap();
+            *mut_ref = 999;
+
+            assert_eq!(*list.get(0).unwrap(), 999, "first element should be modified to 999");
+            assert_eq!(*list.head().unwrap(), 999, "head should reflect the modification");
+        }
+
+        #[test]
+        fn test_get_mut_last_element() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(100);
+            list.push_back(200);
+            list.push_back(300);
+
+            let mut_ref = list.get_mut(2).unwrap(); // last element
+            *mut_ref = 888;
+
+            assert_eq!(*list.get(2).unwrap(), 888, "last element should be modified to 888");
+            assert_eq!(*list.last().unwrap(), 888, "last should reflect the modification");
+        }
+
+        #[test]
+        fn test_get_mut_middle_element() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+            list.push_back(40);
+
+            let mut_ref = list.get_mut(2).unwrap(); // third element
+            *mut_ref *= 2; // 30 * 2 = 60
+
+            assert_eq!(*list.get(2).unwrap(), 60, "middle element should be doubled to 60");
+        }
+
+        #[test]
+        fn test_get_mut_single_element_list() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(42);
+
+            let mut_ref = list.get_mut(0).unwrap();
+            *mut_ref += 1;
+
+            assert_eq!(*list.get(0).unwrap(), 43, "single element should be modified to 43");
+        }
+
+        #[test]
+        fn test_get_mut_with_complex_types() {
+            // Test with String — modify by pushing more text
+            let mut string_list =SingleLinkedList::new();
+            string_list.push_back("hello".to_string());
+            string_list.push_back("world".to_string());
+
+            let mut_str = string_list.get_mut(0).unwrap();
+            mut_str.push_str(" there");
+
+            assert_eq!(string_list.get(0).unwrap(), "hello there", "first string should be modified");
+
+            // Test with Vec — modify by adding elements
+            let mut vec_list =SingleLinkedList::new();
+            vec_list.push_back(vec![1, 2]);
+            vec_list.push_back(vec![3, 4]);
+
+            let mut_vec = vec_list.get_mut(1).unwrap();
+            mut_vec.push(5);
+
+            assert_eq!(vec_list.get(1).unwrap(), &vec![3, 4, 5], "second vector should have new element");
+        }
+
+        #[test]
+        fn test_get_mut_preserves_list_integrity() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(1);
+            list.push_back(2);
+            list.push_back(3);
+
+            // Modify middle element
+            let mut_ref = list.get_mut(1).unwrap();
+            *mut_ref *= 10; // 2 becomes 20
+
+            // Verify list structure is intact
+            assert_eq!(list.len(), 3, "list length should remain unchanged after get_mut()");
+            assert_eq!(list.head(), Some(&1), "head should remain the same");
+            assert_eq!(list.last(), Some(&3), "last should remain the same");
+
+            // Verify other elements are accessible and unchanged
+            assert_eq!(*list.get(0).unwrap(), 1, "first element should be unchanged");
+            assert_eq!(*list.get(2).unwrap(), 3, "last element should be unchanged");
+        }
+
+        #[test]
+        fn test_multiple_get_mut_calls() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+
+            // First modification
+            let first = list.get_mut(0).unwrap();
+            *first += 5; // 10 becomes 15
+
+            // Second modification on different element
+            let last = list.get_mut(2).unwrap();
+            *last *= 2; // 30 becomes 60
+
+            // Final verification
+            let values: Vec<i32> = list.iter().copied().collect();
+            assert_eq!(values, vec![15, 20, 60], "all modifications should be applied correctly");
+        }
+
+        #[test]
+        fn test_get_mut_then_get() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(5);
+            list.push_back(15);
+            list.push_back(25);
+
+            // Modify using get_mut
+            let mid = list.get_mut(1).unwrap();
+            *mid = 99;
+
+            // Immediately read using get
+            let mid_value = list.get(1).unwrap();
+
+            assert_eq!(*mid_value, 99, "get() should reflect changes made by get_mut()");
+        }
+
+        #[test]
+        fn test_get_mut_error_propagation() {
+            let mut list =SingleLinkedList::new();
+            list.push_back(1);
+            list.push_back(2);
+
+            // Try to get mutable reference to out-of-bounds index
+            let result = list.get_mut(5);
+            assert!(result.is_err(), "get_mut() with out-of-bounds index should return error");
+
+            // Ensure list is still valid after failed operation
+            assert_eq!(list.len(), 2, "list should remain unchanged after failed get_mut()");
+            assert_eq!(*list.get(0).unwrap(), 1, "first element should remain 1");
+            assert_eq!(*list.get(1).unwrap(), 2, "second element should remain 2");
+        }
     }
 
     mod push {
