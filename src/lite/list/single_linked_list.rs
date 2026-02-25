@@ -314,10 +314,7 @@ impl<T> SingleLinkedList<T> {
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
-    where
-        T: PartialEq,
-    {
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
         self.iter()
             .enumerate()
             .find(|(_, item)| predicate(*item))
