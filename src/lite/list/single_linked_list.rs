@@ -86,13 +86,6 @@ impl<T> SingleLinkedList<T> {
     ///
     /// Efficiency: O(n)
     pub fn get(&self, index: usize) -> Result<&T> {
-        if index >= self.size {
-            //return Err(anyhow!("index out of bounds"));
-            return Err(ListError::IndexOutOfBounds { index, len: self.size });
-        }
-        if index == 0 {
-            return self.head().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
-        }
         if index + 1 == self.size {
             return self.last().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
         }
@@ -106,12 +99,6 @@ impl<T> SingleLinkedList<T> {
     /// Efficiency: O(n)
     pub fn get_mut(&mut self, index: usize) -> Result<&mut T> {
         let list_size = self.size;
-        if index >= list_size {
-            return Err(ListError::IndexOutOfBounds { index, len: list_size });
-        }
-        if index == 0 {
-            return Ok(unsafe { &mut (*self.head).payload });
-        }
         if index + 1 == list_size {
             return Ok(unsafe { &mut (*self.last).payload });
         }
