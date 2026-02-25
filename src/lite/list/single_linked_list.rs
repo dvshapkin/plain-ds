@@ -2,8 +2,7 @@
 
 use std::ptr;
 
-use anyhow::anyhow;
-
+use crate::lite::list::error::{ListError, Result};
 use crate::lite::list::iter::{IntoIter, Iter, IterMut};
 use crate::lite::list::merge_sort::merge_sort;
 use crate::lite::list::node::Node;
@@ -37,15 +36,19 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Collect list values into a vector.
+    ///
     /// Efficiency: O(n)
     pub fn to_vec(&self) -> Vec<T>
     where
         T: Clone,
     {
-        self.iter().map(|item| (*item).clone()).collect()
+        let mut vec = Vec::with_capacity(self.size);
+        vec.extend(self.iter().cloned());
+        vec
     }
 
     /// Returns list size.
+    ///
     /// Efficiency: O(1)
     pub fn len(&self) -> usize {
         self.size
@@ -58,6 +61,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns the payload value of the first node in the list.
+    ///
     /// Efficiency: O(1)
     pub fn head(&self) -> Option<&T> {
         if self.head.is_null() {
@@ -68,6 +72,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns the payload value of the last node in the list.
+    ///
     /// Efficiency: O(1)
     pub fn last(&self) -> Option<&T> {
         if self.last.is_null() {
@@ -78,37 +83,28 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Returns a list item by index, or error if index out of bounds.
+    ///
     /// Efficiency: O(n)
-    pub fn get(&self, index: usize) -> anyhow::Result<&T> {
-        if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
-        }
-        if index == 0 {
-            return self.head().ok_or(anyhow!("list is empty"));
-        }
+    pub fn get(&self, index: usize) -> Result<&T> {
         if index + 1 == self.size {
-            return self.last().ok_or(anyhow!("list is empty"));
+            return self.last().ok_or(ListError::IndexOutOfBounds { index, len: self.size });
         }
 
         // Finding by index
-        self.iter().nth(index).ok_or(anyhow!("list is empty"))
+        self.iter().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: self.size })
     }
 
     /// Returns a mutable list item by index, or error if index out of bounds.
+    ///
     /// Efficiency: O(n)
-    pub fn get_mut(&mut self, index: usize) -> anyhow::Result<&mut T> {
-        if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
-        }
-        if index == 0 {
-            return Ok(unsafe { &mut (*self.head).payload });
-        }
-        if index + 1 == self.size {
+    pub fn get_mut(&mut self, index: usize) -> Result<&mut T> {
+        let list_size = self.size;
+        if index + 1 == list_size {
             return Ok(unsafe { &mut (*self.last).payload });
         }
 
         // Finding by index
-        self.iter_mut().nth(index).ok_or(anyhow!("list is empty"))
+        self.iter_mut().nth(index).ok_or(ListError::IndexOutOfBounds { index, len: list_size })
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -127,6 +123,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Adds a new node to the end of the list.
+    ///
     /// Efficiency: O(1)
     pub fn push_back(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
@@ -140,6 +137,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Adds a new node to the front of the list.
+    ///
     /// Efficiency: O(1)
     pub fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
@@ -153,6 +151,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes a node from the end of the list and returns its payload value.
+    ///
     /// Efficiency: O(n)
     pub fn pop_back(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -192,6 +191,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes a node from the front of the list and returns its payload value.
+    ///
     /// Efficiency: O(1)
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -210,10 +210,11 @@ impl<T> SingleLinkedList<T> {
 
     /// Insert a new node at the specified location in the list.
     /// Error returns, if the index out of bounds.
+    ///
     /// Efficiency: O(n)
-    pub fn insert(&mut self, index: usize, payload: T) -> anyhow::Result<()> {
+    pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.size {
-            return Err(anyhow!("index out of bounds"));
+            return Err(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index == self.size {
             self.push_back(payload);
@@ -246,10 +247,11 @@ impl<T> SingleLinkedList<T> {
 
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
+    ///
     /// Efficiency: O(n)
-    pub fn remove(&mut self, index: usize) -> anyhow::Result<T> {
+    pub fn remove(&mut self, index: usize) -> Result<T> {
         if index >= self.size {
-            return Err(anyhow!("index out of bounds"));
+            return Err(ListError::IndexOutOfBounds { index, len: self.size });
         }
         if index == 0 {
             // remove first
@@ -278,6 +280,7 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Removes all items from the list.
+    ///
     /// Efficiency: O(n)
     pub fn clear(&mut self) {
         while self.len() != 0 {
@@ -287,6 +290,7 @@ impl<T> SingleLinkedList<T> {
 
     /// Finds the first node whose payload is equal to the given one and returns its index.
     /// Returns `None` if there is no such node.
+    ///
     /// Efficiency: O(n)
     pub fn find(&self, value: &T) -> Option<usize>
     where
@@ -297,11 +301,9 @@ impl<T> SingleLinkedList<T> {
 
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
+    ///
     /// Efficiency: O(n)
-    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
-    where
-        T: PartialEq,
-    {
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
         self.iter()
             .enumerate()
             .find(|(_, item)| predicate(*item))
@@ -309,7 +311,9 @@ impl<T> SingleLinkedList<T> {
     }
 
     /// Sorts the list in ascending order using merge sort algorithm.
+    ///
     /// Efficiency: O(n log n)
+    ///
     /// Space complexity: O(log n) due to recursion stack
     pub fn sort(&mut self)
     where
@@ -1749,19 +1753,6 @@ mod tests {
     mod sort {
         use super::*;
 
-        /// Helper function to collect list values into a vector for easy comparison
-        fn list_to_vec(list: &SingleLinkedList<i32>) -> Vec<i32> {
-            let mut result = Vec::new();
-            let mut current = list.head;
-            while !current.is_null() {
-                unsafe {
-                    result.push((*current).payload);
-                    current = (*current).next;
-                }
-            }
-            result
-        }
-
         #[test]
         fn test_sort_empty_list() {
             let mut list = SingleLinkedList::<i32>::new();
@@ -1782,7 +1773,7 @@ mod tests {
             list.sort();
 
             assert_eq!(list.len(), 1, "single element list should have same length after sort()");
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![42], "single element should remain unchanged");
         }
 
@@ -1793,7 +1784,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2, 3, 4, 5], "already sorted list should remain sorted");
         }
 
@@ -1804,7 +1795,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2, 3, 4, 5], "reverse sorted list should become ascending");
         }
 
@@ -1815,7 +1806,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 1, 2, 3, 4, 5, 6, 9], "random order list should be sorted correctly");
         }
 
@@ -1826,7 +1817,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 1, 2, 2, 3, 3], "list with duplicates should be sorted with duplicates preserved");
         }
 
@@ -1837,7 +1828,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2], "two elements should be sorted in ascending order");
         }
 
@@ -1848,7 +1839,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![1, 2], "already sorted two elements should remain the same");
         }
 
@@ -1871,7 +1862,7 @@ mod tests {
             list.sort();
 
             let sorted_data: Vec<i32> = (1..=1000).collect();
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, sorted_data, "large list should be sorted correctly");
         }
 
@@ -1891,7 +1882,7 @@ mod tests {
 
             list.sort();
 
-            let values = list_to_vec(&list);
+            let values = list.to_vec();
             assert_eq!(values, vec![2, 3, 5], "list after mixed operations should be sorted correctly");
         }
 
@@ -1963,27 +1954,25 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 5);
 
-            // Используем все типы итераторов последовательно
+            // Use all types of iterators sequentially
             {
                 // Итератор по ссылкам
                 let ref_count: usize = list.iter().count();
                 assert_eq!(ref_count, 5);
             }
-
             {
-                // Изменяемый итератор (изменяем все элементы)
+                // Mutable iterator (modify all elements)
                 for item in list.iter_mut() {
                     **item += 10;
                 }
             }
-
             {
-                // IntoIterator — забираем владение
+                // IntoIterator — take ownership
                 let collected: Vec<_> = list.into_iter().collect();
                 assert_eq!(collected, vec![10, 11, 12, 13, 14]);
             }
 
-            // После IntoIterator список уничтожен
+            // After IntoIterator the list is destroyed
             assert_eq!(tracker.alive().count(), 0);
             assert_eq!(tracker.dropped().count(), 5);
         }
@@ -2003,10 +1992,10 @@ mod tests {
                 "50 elements should be alive after push_back"
             );
 
-            // Удаляем элементы с разных позиций
+            // Removing elements from different positions
             assert_eq!(list.remove(0).unwrap(), 0);
-            assert_eq!(list.remove(48).unwrap(), 49); // последний элемент
-            assert_eq!(list.remove(24).unwrap(), 25); // средний элемент
+            assert_eq!(list.remove(48).unwrap(), 49); // last item
+            assert_eq!(list.remove(24).unwrap(), 25); // middle item
 
             assert_eq!(
                 tracker.alive().count(),
@@ -2014,7 +2003,7 @@ mod tests {
                 "After removing 3 elements, 47 should remain alive"
             );
 
-            // Полностью очищаем список
+            // Clear the list completely
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
@@ -2045,7 +2034,7 @@ mod tests {
                 "2 elements should be alive initially"
             );
 
-            // Вставляем элемент в середину
+            // Insert an element into the middle
             list.insert(1, tracker.track(2)).unwrap();
 
             assert_eq!(
@@ -2054,7 +2043,7 @@ mod tests {
                 "3 elements should be alive after insert"
             );
 
-            // Вставляем в начало и конец
+            // Insert at the beginning and end
             list.insert(0, tracker.track(0)).unwrap();
             list.insert(3, tracker.track(4)).unwrap();
 
@@ -2089,7 +2078,7 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 20, "20 elements should be alive");
 
-            // Выполняем несколько операций удаления и добавления
+            // Perform several deletion and addition operations
             for _ in 0..5 {
                 let _ = list.pop_back();
             }
@@ -2128,7 +2117,7 @@ mod tests {
 
             impl Drop for ComplexStruct {
                 fn drop(&mut self) {
-                    // Просто отмечаем удаление
+                    // Just mark the deletion
                 }
             }
 
@@ -2146,7 +2135,7 @@ mod tests {
                 "15 ComplexStruct elements should be alive"
             );
 
-            // Удаляем несколько элементов
+            // Deleting multiple elements
             for _ in 0..3 {
                 let _ = list.pop_front();
             }
@@ -2182,10 +2171,10 @@ mod tests {
 
             assert_eq!(tracker.alive().count(), 10, "10 elements should be alive");
 
-            // Попытка удаления по неверному индексу (не должна вызывать утечек)
+            // Attempted to delete at an invalid index (should not cause leaks)
             assert!(list.remove(15).is_err());
 
-            // Попытка вставки по неверному индексу
+            // Attempt to insert at invalid index
             assert!(list.insert(15, tracker.track(99)).is_err());
 
             assert_eq!(
@@ -2194,12 +2183,12 @@ mod tests {
                 "10 elements should be alive (10 original + 1 attempted insert)"
             );
 
-            // Очищаем список
+            // Clearing the list
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
 
-            drop(list); // Явное удаление
+            drop(list); // Explicit deletion
 
             assert_eq!(
                 tracker.alive().count(),
