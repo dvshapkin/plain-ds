@@ -5,6 +5,7 @@ use std::ptr;
 use anyhow::anyhow;
 
 use crate::lite::list::iter::{IntoIter, Iter, IterMut};
+use crate::lite::list::merge_sort::merge_sort;
 use crate::lite::list::node::Node;
 
 pub struct SingleLinkedList<T> {
@@ -284,6 +285,53 @@ impl<T> SingleLinkedList<T> {
             .find(|(_, item)| predicate(*item))
             .map(|(index, _)| index)
     }
+
+    /// Sorts the list in ascending order using merge sort algorithm.
+    /// Efficiency: O(n log n)
+    /// Space complexity: O(log n) due to recursion stack
+    pub fn sort(&mut self)
+    where
+        T: PartialOrd + Default,
+    {
+        if self.size <= 1 {
+            return; // Already sorted
+        }
+
+        // Extract the head and reset the list
+        let head = self.head;
+        self.head = ptr::null_mut();
+        self.last = ptr::null_mut();
+        self.size = 0;
+
+        // Sort the extracted nodes and get new head
+        let sorted_head = merge_sort(head);
+
+        // Reconstruct the list with sorted nodes
+        self.rebuild_from_sorted_list(sorted_head);
+    }
+
+    /// Rebuilds the SingleLinkedList from a sorted list of nodes
+    fn rebuild_from_sorted_list(&mut self, head: *mut Node<T>) {
+        self.head = head;
+        self.size = 0;
+
+        if head.is_null() {
+            self.last = std::ptr::null_mut();
+            return;
+        }
+
+        // Traverse to find the last node and count size
+        let mut current = head;
+        self.size = 1;
+
+        unsafe {
+            while !(*current).next.is_null() {
+                current = (*current).next;
+                self.size += 1;
+            }
+            self.last = current;
+        }
+    }
 }
 
 impl<T> Drop for SingleLinkedList<T> {
@@ -480,23 +528,32 @@ mod tests {
 
         #[test]
         fn test_get_mut_empty_list() {
-            let mut list:SingleLinkedList<i32> =SingleLinkedList::new();
-            assert!(list.get_mut(0).is_err(), "get_mut() on empty list should return error");
+            let mut list: SingleLinkedList<i32> = SingleLinkedList::new();
+            assert!(
+                list.get_mut(0).is_err(),
+                "get_mut() on empty list should return error"
+            );
         }
 
         #[test]
         fn test_get_mut_index_out_of_bounds() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(10);
             list.push_back(20);
 
-            assert!(list.get_mut(2).is_err(), "get_mut() with index == size should return error");
-            assert!(list.get_mut(5).is_err(), "get_mut() with large out-of-bounds index should return error");
+            assert!(
+                list.get_mut(2).is_err(),
+                "get_mut() with index == size should return error"
+            );
+            assert!(
+                list.get_mut(5).is_err(),
+                "get_mut() with large out-of-bounds index should return error"
+            );
         }
 
         #[test]
         fn test_get_mut_first_element() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(100);
             list.push_back(200);
             list.push_back(300);
@@ -504,13 +561,21 @@ mod tests {
             let mut_ref = list.get_mut(0).unwrap();
             *mut_ref = 999;
 
-            assert_eq!(*list.get(0).unwrap(), 999, "first element should be modified to 999");
-            assert_eq!(*list.head().unwrap(), 999, "head should reflect the modification");
+            assert_eq!(
+                *list.get(0).unwrap(),
+                999,
+                "first element should be modified to 999"
+            );
+            assert_eq!(
+                *list.head().unwrap(),
+                999,
+                "head should reflect the modification"
+            );
         }
 
         #[test]
         fn test_get_mut_last_element() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(100);
             list.push_back(200);
             list.push_back(300);
@@ -518,13 +583,21 @@ mod tests {
             let mut_ref = list.get_mut(2).unwrap(); // last element
             *mut_ref = 888;
 
-            assert_eq!(*list.get(2).unwrap(), 888, "last element should be modified to 888");
-            assert_eq!(*list.last().unwrap(), 888, "last should reflect the modification");
+            assert_eq!(
+                *list.get(2).unwrap(),
+                888,
+                "last element should be modified to 888"
+            );
+            assert_eq!(
+                *list.last().unwrap(),
+                888,
+                "last should reflect the modification"
+            );
         }
 
         #[test]
         fn test_get_mut_middle_element() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(10);
             list.push_back(20);
             list.push_back(30);
@@ -533,46 +606,62 @@ mod tests {
             let mut_ref = list.get_mut(2).unwrap(); // third element
             *mut_ref *= 2; // 30 * 2 = 60
 
-            assert_eq!(*list.get(2).unwrap(), 60, "middle element should be doubled to 60");
+            assert_eq!(
+                *list.get(2).unwrap(),
+                60,
+                "middle element should be doubled to 60"
+            );
         }
 
         #[test]
         fn test_get_mut_single_element_list() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(42);
 
             let mut_ref = list.get_mut(0).unwrap();
             *mut_ref += 1;
 
-            assert_eq!(*list.get(0).unwrap(), 43, "single element should be modified to 43");
+            assert_eq!(
+                *list.get(0).unwrap(),
+                43,
+                "single element should be modified to 43"
+            );
         }
 
         #[test]
         fn test_get_mut_with_complex_types() {
             // Test with String — modify by pushing more text
-            let mut string_list =SingleLinkedList::new();
+            let mut string_list = SingleLinkedList::new();
             string_list.push_back("hello".to_string());
             string_list.push_back("world".to_string());
 
             let mut_str = string_list.get_mut(0).unwrap();
             mut_str.push_str(" there");
 
-            assert_eq!(string_list.get(0).unwrap(), "hello there", "first string should be modified");
+            assert_eq!(
+                string_list.get(0).unwrap(),
+                "hello there",
+                "first string should be modified"
+            );
 
             // Test with Vec — modify by adding elements
-            let mut vec_list =SingleLinkedList::new();
+            let mut vec_list = SingleLinkedList::new();
             vec_list.push_back(vec![1, 2]);
             vec_list.push_back(vec![3, 4]);
 
             let mut_vec = vec_list.get_mut(1).unwrap();
             mut_vec.push(5);
 
-            assert_eq!(vec_list.get(1).unwrap(), &vec![3, 4, 5], "second vector should have new element");
+            assert_eq!(
+                vec_list.get(1).unwrap(),
+                &vec![3, 4, 5],
+                "second vector should have new element"
+            );
         }
 
         #[test]
         fn test_get_mut_preserves_list_integrity() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(1);
             list.push_back(2);
             list.push_back(3);
@@ -582,18 +671,26 @@ mod tests {
             *mut_ref *= 10; // 2 becomes 20
 
             // Verify list structure is intact
-            assert_eq!(list.len(), 3, "list length should remain unchanged after get_mut()");
+            assert_eq!(
+                list.len(),
+                3,
+                "list length should remain unchanged after get_mut()"
+            );
             assert_eq!(list.head(), Some(&1), "head should remain the same");
             assert_eq!(list.last(), Some(&3), "last should remain the same");
 
             // Verify other elements are accessible and unchanged
-            assert_eq!(*list.get(0).unwrap(), 1, "first element should be unchanged");
+            assert_eq!(
+                *list.get(0).unwrap(),
+                1,
+                "first element should be unchanged"
+            );
             assert_eq!(*list.get(2).unwrap(), 3, "last element should be unchanged");
         }
 
         #[test]
         fn test_multiple_get_mut_calls() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(10);
             list.push_back(20);
             list.push_back(30);
@@ -608,12 +705,16 @@ mod tests {
 
             // Final verification
             let values: Vec<i32> = list.iter().copied().collect();
-            assert_eq!(values, vec![15, 20, 60], "all modifications should be applied correctly");
+            assert_eq!(
+                values,
+                vec![15, 20, 60],
+                "all modifications should be applied correctly"
+            );
         }
 
         #[test]
         fn test_get_mut_then_get() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(5);
             list.push_back(15);
             list.push_back(25);
@@ -625,21 +726,31 @@ mod tests {
             // Immediately read using get
             let mid_value = list.get(1).unwrap();
 
-            assert_eq!(*mid_value, 99, "get() should reflect changes made by get_mut()");
+            assert_eq!(
+                *mid_value, 99,
+                "get() should reflect changes made by get_mut()"
+            );
         }
 
         #[test]
         fn test_get_mut_error_propagation() {
-            let mut list =SingleLinkedList::new();
+            let mut list = SingleLinkedList::new();
             list.push_back(1);
             list.push_back(2);
 
             // Try to get mutable reference to out-of-bounds index
             let result = list.get_mut(5);
-            assert!(result.is_err(), "get_mut() with out-of-bounds index should return error");
+            assert!(
+                result.is_err(),
+                "get_mut() with out-of-bounds index should return error"
+            );
 
             // Ensure list is still valid after failed operation
-            assert_eq!(list.len(), 2, "list should remain unchanged after failed get_mut()");
+            assert_eq!(
+                list.len(),
+                2,
+                "list should remain unchanged after failed get_mut()"
+            );
             assert_eq!(*list.get(0).unwrap(), 1, "first element should remain 1");
             assert_eq!(*list.get(1).unwrap(), 2, "second element should remain 2");
         }
@@ -1349,7 +1460,7 @@ mod tests {
         }
     }
 
-    mod clear_tests {
+    mod clear {
         use super::*;
 
         #[test]
@@ -1359,10 +1470,25 @@ mod tests {
 
             list.clear();
 
-            assert!(list.is_empty(), "clear() on empty list should leave it empty");
-            assert_eq!(list.len(), 0, "length should remain 0 after clear() on empty list");
-            assert_eq!(list.head(), None, "head should be None after clear() on empty list");
-            assert_eq!(list.last(), None, "last should be None after clear() on empty list");
+            assert!(
+                list.is_empty(),
+                "clear() on empty list should leave it empty"
+            );
+            assert_eq!(
+                list.len(),
+                0,
+                "length should remain 0 after clear() on empty list"
+            );
+            assert_eq!(
+                list.head(),
+                None,
+                "head should be None after clear() on empty list"
+            );
+            assert_eq!(
+                list.last(),
+                None,
+                "last should be None after clear() on empty list"
+            );
         }
 
         #[test]
@@ -1390,10 +1516,25 @@ mod tests {
 
             list.clear();
 
-            assert!(list.is_empty(), "list should be empty after clearing multiple elements");
-            assert_eq!(list.len(), 0, "length should be 0 after clearing multiple elements");
-            assert_eq!(list.head(), None, "head should be None after clearing multiple elements");
-            assert_eq!(list.last(), None, "last should be None after clearing multiple elements");
+            assert!(
+                list.is_empty(),
+                "list should be empty after clearing multiple elements"
+            );
+            assert_eq!(
+                list.len(),
+                0,
+                "length should be 0 after clearing multiple elements"
+            );
+            assert_eq!(
+                list.head(),
+                None,
+                "head should be None after clearing multiple elements"
+            );
+            assert_eq!(
+                list.last(),
+                None,
+                "last should be None after clearing multiple elements"
+            );
         }
 
         #[test]
@@ -1409,7 +1550,11 @@ mod tests {
             list.push_back(100);
             list.push_back(200);
 
-            assert_eq!(list.len(), 2, "list should accept new elements after clear()");
+            assert_eq!(
+                list.len(),
+                2,
+                "list should accept new elements after clear()"
+            );
             assert_eq!(*list.head().unwrap(), 100, "new head should be 100");
             assert_eq!(*list.last().unwrap(), 200, "new last should be 200");
         }
@@ -1422,8 +1567,15 @@ mod tests {
             string_list.push_back("banana".to_string());
 
             string_list.clear();
-            assert!(string_list.is_empty(), "string list should be empty after clear()");
-            assert_eq!(string_list.len(), 0, "string list length should be 0 after clear()");
+            assert!(
+                string_list.is_empty(),
+                "string list should be empty after clear()"
+            );
+            assert_eq!(
+                string_list.len(),
+                0,
+                "string list length should be 0 after clear()"
+            );
 
             // Test with Vec
             let mut vec_list = SingleLinkedList::new();
@@ -1431,8 +1583,15 @@ mod tests {
             vec_list.push_back(vec![3, 4]);
 
             vec_list.clear();
-            assert!(vec_list.is_empty(), "vec list should be empty after clear()");
-            assert_eq!(vec_list.len(), 0, "vec list length should be 0 after clear()");
+            assert!(
+                vec_list.is_empty(),
+                "vec list should be empty after clear()"
+            );
+            assert_eq!(
+                vec_list.len(),
+                0,
+                "vec list length should be 0 after clear()"
+            );
         }
 
         #[test]
@@ -1460,7 +1619,11 @@ mod tests {
             // Ensure we can create a new list and it works correctly
             let mut new_list = SingleLinkedList::new();
             new_list.push_back(100);
-            assert_eq!(new_list.len(), 1, "new list should work correctly after previous clear()");
+            assert_eq!(
+                new_list.len(),
+                1,
+                "new list should work correctly after previous clear()"
+            );
         }
 
         #[test]
@@ -1474,14 +1637,38 @@ mod tests {
                     list.push_back(i);
                 }
 
-                assert_eq!(list.len(), *size, "list should have correct length before clear() for size {}", size);
+                assert_eq!(
+                    list.len(),
+                    *size,
+                    "list should have correct length before clear() for size {}",
+                    size
+                );
 
                 list.clear();
 
-                assert!(list.is_empty(), "list of size {} should be empty after clear()", size);
-                assert_eq!(list.len(), 0, "list of size {} should have length 0 after clear()", size);
-                assert_eq!(list.head(), None, "head should be None for cleared list of size {}", size);
-                assert_eq!(list.last(), None, "last should be None for cleared list of size {}", size);
+                assert!(
+                    list.is_empty(),
+                    "list of size {} should be empty after clear()",
+                    size
+                );
+                assert_eq!(
+                    list.len(),
+                    0,
+                    "list of size {} should have length 0 after clear()",
+                    size
+                );
+                assert_eq!(
+                    list.head(),
+                    None,
+                    "head should be None for cleared list of size {}",
+                    size
+                );
+                assert_eq!(
+                    list.last(),
+                    None,
+                    "last should be None for cleared list of size {}",
+                    size
+                );
             }
         }
 
@@ -1497,16 +1684,234 @@ mod tests {
             list.push_back(3);
 
             // List should now be [1, 2, 3]
-            assert_eq!(list.len(), 3, "list should have 3 elements after mixed operations");
-            assert_eq!(*list.head().unwrap(), 1, "head should be 1 after mixed operations");
-            assert_eq!(*list.last().unwrap(), 3, "last should be 3 after mixed operations");
+            assert_eq!(
+                list.len(),
+                3,
+                "list should have 3 elements after mixed operations"
+            );
+            assert_eq!(
+                *list.head().unwrap(),
+                1,
+                "head should be 1 after mixed operations"
+            );
+            assert_eq!(
+                *list.last().unwrap(),
+                3,
+                "last should be 3 after mixed operations"
+            );
 
             list.clear();
 
-            assert!(list.is_empty(), "list should be empty after clear() following mixed operations");
-            assert_eq!(list.len(), 0, "length should be 0 after clear() following mixed operations");
-            assert_eq!(list.head(), None, "head should be None after clear() following mixed operations");
-            assert_eq!(list.last(), None, "last should be None after clear() following mixed operations");
+            assert!(
+                list.is_empty(),
+                "list should be empty after clear() following mixed operations"
+            );
+            assert_eq!(
+                list.len(),
+                0,
+                "length should be 0 after clear() following mixed operations"
+            );
+            assert_eq!(
+                list.head(),
+                None,
+                "head should be None after clear() following mixed operations"
+            );
+            assert_eq!(
+                list.last(),
+                None,
+                "last should be None after clear() following mixed operations"
+            );
+        }
+    }
+
+    mod sort {
+        use super::*;
+
+        /// Helper function to create a list from a slice of values
+        fn create_list_from_slice(values: &[i32]) -> SingleLinkedList<i32> {
+            let mut list = SingleLinkedList::new();
+            for &value in values {
+                list.push_back(value);
+            }
+            list
+        }
+
+        /// Helper function to collect list values into a vector for easy comparison
+        fn list_to_vec(list: &SingleLinkedList<i32>) -> Vec<i32> {
+            let mut result = Vec::new();
+            let mut current = list.head;
+            while !current.is_null() {
+                unsafe {
+                    result.push((*current).payload);
+                    current = (*current).next;
+                }
+            }
+            result
+        }
+
+        #[test]
+        fn test_sort_empty_list() {
+            let mut list = SingleLinkedList::<i32>::new();
+            assert_eq!(list.len(), 0, "list should be empty initially");
+
+            list.sort();
+
+            assert_eq!(list.len(), 0, "empty list should remain empty after sort()");
+            assert!(list.is_empty(), "empty list should be empty after sort()");
+        }
+
+        #[test]
+        fn test_sort_single_element() {
+            let mut list = SingleLinkedList::new();
+            list.push_back(42);
+            assert_eq!(list.len(), 1, "list should have one element");
+
+            list.sort();
+
+            assert_eq!(list.len(), 1, "single element list should have same length after sort()");
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![42], "single element should remain unchanged");
+        }
+
+        #[test]
+        fn test_sort_already_sorted() {
+            let mut list = create_list_from_slice(&[1, 2, 3, 4, 5]);
+            assert_eq!(list.len(), 5, "list should have 5 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 2, 3, 4, 5], "already sorted list should remain sorted");
+        }
+
+        #[test]
+        fn test_sort_reverse_sorted() {
+            let mut list = create_list_from_slice(&[5, 4, 3, 2, 1]);
+            assert_eq!(list.len(), 5, "list should have 5 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 2, 3, 4, 5], "reverse sorted list should become ascending");
+        }
+
+        #[test]
+        fn test_sort_random_order() {
+            let mut list = create_list_from_slice(&[3, 1, 4, 1, 5, 9, 2, 6]);
+            assert_eq!(list.len(), 8, "list should have 8 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 1, 2, 3, 4, 5, 6, 9], "random order list should be sorted correctly");
+        }
+
+        #[test]
+        fn test_sort_with_duplicates() {
+            let mut list = create_list_from_slice(&[2, 2, 1, 1, 3, 3]);
+            assert_eq!(list.len(), 6, "list should have 6 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 1, 2, 2, 3, 3], "list with duplicates should be sorted with duplicates preserved");
+        }
+
+        #[test]
+        fn test_sort_two_elements_unsorted() {
+            let mut list = create_list_from_slice(&[2, 1]);
+            assert_eq!(list.len(), 2, "list should have 2 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 2], "two elements should be sorted in ascending order");
+        }
+
+        #[test]
+        fn test_sort_two_elements_sorted() {
+            let mut list = create_list_from_slice(&[1, 2]);
+            assert_eq!(list.len(), 2, "list should have 2 elements");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![1, 2], "already sorted two elements should remain the same");
+        }
+
+        #[test]
+        fn test_sort_large_list() {
+            // Create a large list with random-like pattern
+            let mut data: Vec<i32> = (1..=1000).collect();
+            // Shuffle by reversing every 10 elements
+            for chunk in data.chunks_mut(10) {
+                chunk.reverse();
+            }
+
+            let mut list = SingleLinkedList::new();
+            for &value in &data {
+                list.push_back(value);
+            }
+
+            assert_eq!(list.len(), 1000, "large list should have 1000 elements");
+
+            list.sort();
+
+            let sorted_data: Vec<i32> = (1..=1000).collect();
+            let values = list_to_vec(&list);
+            assert_eq!(values, sorted_data, "large list should be sorted correctly");
+        }
+
+        #[test]
+        fn test_sort_after_operations() {
+            let mut list = SingleLinkedList::new();
+
+            // Perform various operations
+            list.push_back(5);
+            list.push_front(1);
+            list.push_back(3);
+            list.pop_front(); // removes 1
+            list.push_back(2);
+
+            // List should now be [5, 3, 2]
+            assert_eq!(list.len(), 3, "list should have 3 elements after mixed operations");
+
+            list.sort();
+
+            let values = list_to_vec(&list);
+            assert_eq!(values, vec![2, 3, 5], "list after mixed operations should be sorted correctly");
+        }
+
+        #[test]
+        fn test_sort_string_list() {
+            let mut list = SingleLinkedList::new();
+            list.push_back("zebra".to_string());
+            list.push_back("apple".to_string());
+            list.push_back("banana".to_string());
+            list.push_back("cherry".to_string());
+
+            assert_eq!(list.len(), 4, "string list should have 4 elements");
+
+            list.sort();
+
+            let values: Vec<String> = list.into_iter().collect();
+
+            assert_eq!(
+                values,
+                vec!["apple".to_string(), "banana".to_string(), "cherry".to_string(), "zebra".to_string()],
+                "string list should be sorted alphabetically"
+            );
+        }
+
+        #[test]
+        fn test_sort_preserves_last_pointer() {
+            let mut list = create_list_from_slice(&[3, 1, 4, 2]);
+
+            list.sort();
+
+            // Verify that last pointer is correctly set to the last node
+            let last_value = unsafe { (*list.last).payload };
+            assert_eq!(last_value, 4, "last pointer should point to the maximum element after sorting");
         }
     }
 
@@ -1846,7 +2251,10 @@ mod tests {
 
             list.clear();
 
-            assert!(list.is_empty(), "complex type list should be empty after clear()");
+            assert!(
+                list.is_empty(),
+                "complex type list should be empty after clear()"
+            );
             assert_eq!(
                 tracker.alive().count(),
                 0,
@@ -1878,7 +2286,7 @@ mod tests {
 
             // Remove two elements manually
             let _ = list.pop_front(); // drops element 1
-            let _ = list.pop_back();  // drops element 4
+            let _ = list.pop_back(); // drops element 4
 
             assert_eq!(list.len(), 2, "list size should be 2 after partial removal");
             assert_eq!(
