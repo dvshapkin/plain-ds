@@ -26,19 +26,14 @@ cargo add plain-ds
 ## What's new in last version?
 ### [0.1.0]
 ### Added
-- 
-### Changed
-+ 
-### Fixed
-- 
-
+- `SingleLinkedList` lite implementation
 
 ## Overview
 
 As already mentioned, `plain-ds` is a set of simple data structures (DS) that have proven useful in my projects.
 These data structures may not be the most efficient and productive solutions, but they have proven to be appropriate 
 in certain specific situations for various reasons. I plan to expand this set as needed, as well as improve the quality 
-and efficiency of existing DS. Perhaps, `plain-ds` will be useful to others.
+and efficiency of existing DS.
 
 **Key principles**:
 - **Reliability**: Bugs free code you can trust.
