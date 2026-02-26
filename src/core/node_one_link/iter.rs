@@ -1,4 +1,4 @@
-use crate::core::node_one_link::node::Node;
+use super::Node;
 
 pub struct Iter<'a, T> {
     current: *const Node<T>,

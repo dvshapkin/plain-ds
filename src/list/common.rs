@@ -1,6 +1,6 @@
 use std::ptr;
-use crate::core::node_one_link::{Iter, IterMut, Node};
-use crate::DSError;
+use crate::core::{Iter, IterMut, Node};
+use crate::core::DSError;
 
 pub struct ListCommon<T> {
     pub head: *mut Node<T>, // 8 bytes
@@ -411,6 +411,165 @@ mod tests {
                 "pop_front should return 2 finally"
             );
             assert_eq!(list.len(), 0, "list should be empty after all pop_fronts");
+        }
+    }
+
+    mod remove {
+        use super::*;
+
+        #[test]
+        fn test_remove_from_empty_list() {
+            let mut list = ListCommon::<u8>::new();
+            assert!(
+                list.remove(0).is_err(),
+                "remove from empty list should return error"
+            );
+            assert_eq!(list.len(), 0, "size should remain 0");
+        }
+
+        #[test]
+        fn test_remove_first_element() {
+            let mut list = setup_list(3); // [0, 1, 2]
+            let removed = list.remove(0).unwrap();
+            assert_eq!(removed, 0, "removed value should be 0 (first element)");
+            assert_eq!(list.len(), 2, "size should decrease by 1");
+            assert_eq!(list.head(), Some(&1), "new head should be 1");
+        }
+
+        #[test]
+        fn test_remove_last_element() {
+            let mut list = setup_list(3); // [0, 1, 2]
+            let removed = list.remove(2).unwrap(); // index = size - 1
+            assert_eq!(removed, 2, "removed value should be 2 (last element)");
+            assert_eq!(list.len(), 2, "size should decrease by 1");
+            assert_eq!(list.last(), Some(&1), "new last should be 1");
+        }
+
+        #[test]
+        fn test_remove_middle_element() {
+            let mut list = setup_list(4); // [0, 1, 2, 3]
+            let removed = list.remove(1).unwrap(); // remove element at index 1 (value 1)
+            assert_eq!(removed, 1, "removed value should be 1");
+            assert_eq!(list.len(), 3, "size should decrease by 1");
+
+            // Verify the order: [0, 2, 3]
+            let values: Vec<usize> = list.iter().copied().collect();
+            assert_eq!(
+                values,
+                vec![0, 2, 3],
+                "list should have correct order after removal"
+            );
+        }
+
+        #[test]
+        fn test_remove_out_of_bounds() {
+            let mut list = setup_list(2); // [0, 1]
+
+            // Index equal to size (should be out of bounds)
+            assert!(
+                list.remove(2).is_err(),
+                "remove with index == size should return error"
+            );
+
+            // Index greater than size
+            assert!(
+                list.remove(5).is_err(),
+                "remove with large out-of-bounds index should return error"
+            );
+
+            // Empty list
+            let mut empty_list = ListCommon::<u8>::new();
+            assert!(
+                empty_list.remove(0).is_err(),
+                "remove from empty list should return error"
+            );
+        }
+
+        #[test]
+        fn test_remove_single_element_list() {
+            let mut list = ListCommon::new();
+            list.push_back(42);
+            let removed = list.remove(0).unwrap();
+            assert_eq!(removed, 42, "removed value should be 42");
+            assert_eq!(
+                list.len(), 0,
+                "list should be empty after removing the only element"
+            );
+            assert_eq!(list.head(), None, "head should be None");
+            assert_eq!(list.last(), None, "last should be None");
+        }
+
+        #[test]
+        fn test_remove_preserves_head_and_last_pointers() {
+            let mut list = setup_list(4); // [0, 1, 2, 3]
+
+            // Remove middle element (index 1, value 1)
+            let _ = list.remove(1);
+
+            assert_eq!(list.head(), Some(&0), "head pointer should remain correct");
+            assert_eq!(list.last(), Some(&3), "last pointer should remain correct");
+        }
+
+        #[test]
+        fn test_multiple_removes() {
+            let mut list = setup_list(5); // [0, 1, 2, 3, 4]
+
+            // Remove second element (index 1, value 1)
+            let removed1 = list.remove(1).unwrap();
+            assert_eq!(removed1, 1);
+            assert_eq!(list.len(), 4);
+
+            // Remove new second element (was 2, now at index 1)
+            let removed2 = list.remove(1).unwrap();
+            assert_eq!(removed2, 2);
+            assert_eq!(list.len(), 3);
+
+            // Final state should be [0, 3, 4]
+            let final_values: Vec<usize> = list.iter().copied().collect();
+            assert_eq!(
+                final_values,
+                vec![0, 3, 4],
+                "list should have correct values after multiple removes"
+            );
+        }
+
+        #[test]
+        fn test_remove_with_complex_types_string() {
+            let mut list = ListCommon::new();
+            list.push_back("first".to_string());
+            list.push_back("second".to_string());
+            list.push_back("third".to_string());
+
+            let removed = list.remove(1).unwrap(); // Remove "second"
+            assert_eq!(
+                removed,
+                "second".to_string(),
+                "removed value should be 'second'"
+            );
+            assert_eq!(list.len(), 2, "size should be 2 after removal");
+
+            // Verify order: ["first", "third"]
+            let remaining: Vec<String> = list.iter().map(|s| s.clone()).collect();
+            assert_eq!(remaining, vec!["first", "third"]);
+        }
+
+        #[test]
+        fn test_remove_edge_cases() {
+            // Test removing from a list with two elements
+            let mut two_elements = ListCommon::new();
+            two_elements.push_back(10);
+            two_elements.push_back(20);
+
+            // Remove first (index 0)
+            let removed_first = two_elements.remove(0).unwrap();
+            assert_eq!(removed_first, 10);
+            assert_eq!(two_elements.len(), 1);
+            assert_eq!(two_elements.head(), Some(&20));
+
+            // Now remove the last (only remaining) element
+            let removed_last = two_elements.remove(0).unwrap();
+            assert_eq!(removed_last, 20);
+            assert_eq!(two_elements.len(), 0);
         }
     }
 

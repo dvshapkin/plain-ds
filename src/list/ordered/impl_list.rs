@@ -1,22 +1,18 @@
 use std::ptr;
 
-use crate::core::List;
-use crate::core::node_one_link::Node;
-use crate::list::common::{IntoIter, ListCommon};
-
-type Comparator<T> = fn(&T, &T) -> bool;
+use crate::list::list_api::List;
+use crate::core::Node;
+use crate::list::common::ListCommon;
 
 pub struct OrderedList<T> {
     state: ListCommon<T>,
-    compare: Comparator<T>,
 }
 
-impl<T: PartialOrd> OrderedList<T> {
+impl<T> OrderedList<T> {
     /// Creates empty ordered list.
     pub fn new() -> Self {
         Self {
             state: ListCommon::new(),
-            compare: |lhs: &T, rhs: &T| lhs < rhs,
         }
     }
 
@@ -43,7 +39,10 @@ impl<T: PartialOrd> OrderedList<T> {
     }
 }
 
-impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
+impl<'a, T: 'a> List<'a, T> for OrderedList<T>
+where
+    T: PartialOrd,
+{
     /// Returns list size.
     ///
     /// Efficiency: O(1)
@@ -95,7 +94,7 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
             let mut done = false;
             unsafe {
                 while !next.is_null() {
-                    if (self.compare)(&(*ptr).payload, &(*next).payload) {
+                    if &(*ptr).payload < &(*next).payload {
                         if !prev.is_null() {
                             (*prev).next = ptr;
                         }

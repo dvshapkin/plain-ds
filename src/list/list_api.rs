@@ -1,4 +1,4 @@
-use crate::{DSError, Result};
+use crate::core::{DSError, Result};
 
 /// This trait defines common API for all list implementations.
 pub trait List<'a, T: 'a> {

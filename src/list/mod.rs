@@ -1,6 +1,6 @@
-pub mod ordered;
-pub mod single_linked;
-pub mod list_api;
+mod ordered;
+mod single_linked;
+mod list_api;
 mod common;
 
 pub use ordered::OrderedList;

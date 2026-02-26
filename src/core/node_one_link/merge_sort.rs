@@ -1,9 +1,9 @@
-use crate::core::node_one_link::node::Node;
+use super::Node;
 
 /// Merge sort implementation for linked single_linked nodes
 pub fn merge_sort<T>(head: *mut Node<T>) -> *mut Node<T>
 where
-    T: PartialOrd + Default
+    T: PartialOrd + Default,
 {
     // Base case: empty single_linked or single node
     if head.is_null() || unsafe { (*head).next.is_null() } {
@@ -45,7 +45,7 @@ fn split_list<T>(head: *mut Node<T>) -> (*mut Node<T>, *mut Node<T>) {
 /// Merges two sorted linked lists into one sorted single_linked
 fn merge<T>(mut left: *mut Node<T>, mut right: *mut Node<T>) -> *mut Node<T>
 where
-    T: PartialOrd + Default
+    T: PartialOrd + Default,
 {
     // Dummy node to simplify merging logic
     let dummy = Box::new(Node {
