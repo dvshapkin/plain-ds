@@ -1,4 +1,4 @@
-use crate::core::node_one_link::node::Node;
+use crate::core::node_one_link::Node;
 
 pub struct OrderedList<T> {
     head: *mut Node<T>, // 8 bytes
