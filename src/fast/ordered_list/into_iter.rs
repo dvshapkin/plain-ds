@@ -52,7 +52,7 @@ mod tests {
     fn test_sequential_iteration() {
         let mut list = OrderedList::new();
         for i in 0..5 {
-            list.push_back(i);
+            list.push(i);
         }
 
         // Проверка итератора по ссылкам
@@ -75,7 +75,7 @@ mod tests {
     fn test_partial_iteration() {
         let mut list = OrderedList::new();
         for i in 0..10 {
-            list.push_back(i);
+            list.push(i);
         }
 
         {
@@ -98,9 +98,9 @@ mod tests {
     #[test]
     fn test_concurrent_iterators() {
         let mut list = OrderedList::new();
-        list.push_back(1);
-        list.push_back(2);
-        list.push_back(3);
+        list.push(1);
+        list.push(2);
+        list.push(3);
 
         // Создаём несколько итераторов одновременно
         let collect1: Vec<_> = list.iter().cloned().collect();
@@ -120,7 +120,7 @@ mod tests {
     fn test_mutable_iteration_modification() {
         let mut list = OrderedList::new();
         for i in 1..=3 {
-            list.push_back(i);
+            list.push(i);
         }
 
         let mut counter = 0;
@@ -139,7 +139,7 @@ mod tests {
 
         let mut list = OrderedList::new();
         for i in 0..LARGE_SIZE {
-            list.push_back(i);
+            list.push(i);
         }
 
         // Полный проход через итератор

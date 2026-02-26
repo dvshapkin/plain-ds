@@ -10,7 +10,7 @@ pub struct OrderedList<T> {
 }
 
 impl<T> OrderedList<T> {
-    /// Creates empty single_linked_list.
+    /// Creates empty ordered list.
     pub fn new() -> Self {
         Self {
             head: ptr::null_mut(),
@@ -22,11 +22,11 @@ impl<T> OrderedList<T> {
 
 impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     fn len(&self) -> usize {
-        todo!()
+        self.size
     }
 
     fn is_empty(&self) -> bool {
-        todo!()
+        self.len() == 0
     }
 
     fn head(&self) -> Option<&T> {
@@ -57,11 +57,7 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
         IntoIter::new(self)
     }
 
-    fn push_back(&mut self, payload: T) {
-        todo!()
-    }
-
-    fn push_front(&mut self, payload: T) {
+    fn push(&mut self, payload: T) {
         todo!()
     }
 
@@ -70,10 +66,6 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     }
 
     fn pop_front(&mut self) -> Option<T> {
-        todo!()
-    }
-
-    fn insert(&mut self, index: usize, payload: T) -> crate::Result<()> {
         todo!()
     }
 
