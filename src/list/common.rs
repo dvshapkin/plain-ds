@@ -1,7 +1,10 @@
-use std::ptr;
-use crate::core::{Iter, IterMut, Node};
 use crate::core::DSError;
+use crate::core::{Iter, IterMut, Node};
+use std::ptr;
 
+/// `ListCommon` is a core of all lists implementation.
+/// It contains common fields and implement some common methods.
+/// This is not for direct usage.
 pub struct ListCommon<T> {
     pub head: *mut Node<T>, // 8 bytes
     pub last: *mut Node<T>, // 8 bytes
@@ -230,7 +233,6 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,7 +305,8 @@ mod tests {
                 "pop_back from empty list should return None"
             );
             assert_eq!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "list should remain empty after pop_back on empty"
             );
         }
@@ -318,7 +321,8 @@ mod tests {
                 "pop_back() should return the only element"
             );
             assert_eq!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "list should be empty after popping the last element"
             );
             assert_eq!(
@@ -366,7 +370,8 @@ mod tests {
                 "pop_front() from empty list should return None"
             );
             assert_eq!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "list should remain empty after pop_front() on empty"
             );
         }
@@ -381,7 +386,8 @@ mod tests {
                 "pop_front() should return the only element"
             );
             assert_eq!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "list should be empty after popping the only element"
             );
             assert_eq!(list.head(), None, "head should be None after pop");
@@ -492,7 +498,8 @@ mod tests {
             let removed = list.remove(0).unwrap();
             assert_eq!(removed, 42, "removed value should be 42");
             assert_eq!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "list should be empty after removing the only element"
             );
             assert_eq!(list.head(), None, "head should be None");

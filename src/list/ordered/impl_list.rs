@@ -4,6 +4,26 @@ use crate::list::list_api::List;
 use crate::core::Node;
 use crate::list::common::ListCommon;
 
+/// An ordered collection that maintains its elements in sorted order.
+///
+/// The `OrderedList` automatically keeps elements sorted upon insertion,
+/// ensuring efficient search operations.
+///
+/// # Type Parameters
+/// * `T`: The type of elements stored in the list. Must implement `PartialOrd`.
+///
+/// # Examples
+/// ```
+/// use plain_ds::OrderedList;
+///
+/// let mut list = OrderedList::new();
+/// list.push(3);
+/// list.push(1);
+/// list.push(2);
+///
+/// assert_eq!(list.get(0), Some(&1));
+/// assert_eq!(list.len(), 3);
+/// ```
 pub struct OrderedList<T> {
     state: ListCommon<T>,
 }

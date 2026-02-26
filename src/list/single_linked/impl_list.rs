@@ -7,6 +7,27 @@ use crate::core::{DSError, Result};
 use crate::core::{Node, merge_sort};
 use crate::list::common::ListCommon;
 
+/// A singly-linked list implementation with efficient insertion at the front and back.
+///
+/// The `SingleLinkedList` stores elements in a linear sequence where each element
+/// points to the next one. It provides O(1) push and pop operations.
+///
+/// # Type Parameters
+/// * `T`: The type of elements stored in the list.
+///
+///
+/// # Examples
+/// ```
+/// use plain_ds::SingleLinkedList;
+///
+/// let mut list = SingleLinkedList::new();
+/// list.push(1);
+/// list.push(2);
+/// list.push(3);
+///
+/// assert_eq!(list.pop(), Some(3));
+/// assert_eq!(list.len(), 2);
+/// ```
 pub struct SingleLinkedList<T> {
     state: ListCommon<T>,
 }
