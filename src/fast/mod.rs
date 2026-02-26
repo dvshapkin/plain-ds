@@ -1,3 +1,3 @@
-mod list;
+mod ordered_list;
 
-pub use list::OrderedList;
+pub use ordered_list::OrderedList;

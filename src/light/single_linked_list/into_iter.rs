@@ -1,4 +1,5 @@
 use super::SingleLinkedList;
+use crate::core::List;
 
 pub struct IntoIter<T> {
     list: SingleLinkedList<T>,

@@ -1,8 +1,9 @@
-//! This module contains single-linked list implementation.
+//! This module contains single-linked single_linked_list implementation.
 
 use std::ptr;
 
 use crate::core::error::{DSError, Result};
+use crate::core::List;
 use crate::core::node_one_link::{Iter, IterMut, Node, merge_sort};
 use super::IntoIter;
 
@@ -13,7 +14,7 @@ pub struct SingleLinkedList<T> {
 }
 
 impl<T> SingleLinkedList<T> {
-    /// Creates empty list.
+    /// Creates empty single_linked_list.
     pub fn new() -> Self {
         Self {
             head: ptr::null_mut(),
@@ -22,7 +23,7 @@ impl<T> SingleLinkedList<T> {
         }
     }
 
-    /// Creates list from slice.
+    /// Creates single_linked_list from slice.
     pub fn from_slice(slice: &[T]) -> Self
     where
         T: Clone,
@@ -34,7 +35,7 @@ impl<T> SingleLinkedList<T> {
         list
     }
 
-    /// Collect list values into a vector.
+    /// Collect single_linked_list values into a vector.
     ///
     /// Efficiency: O(n)
     pub fn to_vec(&self) -> Vec<T>
@@ -46,23 +47,59 @@ impl<T> SingleLinkedList<T> {
         vec
     }
 
-    /// Returns list size.
+    /// Finds the first node whose payload is equal to the given one and returns its index.
+    /// Returns `None` if there is no such node.
+    ///
+    /// Efficiency: O(n)
+    fn find(&self, value: &T) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        self.find_if(|item| item == value)
+    }
+
+    /// Rebuilds the SingleLinkedList from a sorted single_linked_list of nodes
+    fn rebuild_from_sorted_list(&mut self, head: *mut Node<T>) {
+        self.head = head;
+        self.size = 0;
+
+        if head.is_null() {
+            self.last = std::ptr::null_mut();
+            return;
+        }
+
+        // Traverse to find the last node and count size
+        let mut current = head;
+        self.size = 1;
+
+        unsafe {
+            while !(*current).next.is_null() {
+                current = (*current).next;
+                self.size += 1;
+            }
+            self.last = current;
+        }
+    }
+}
+
+impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
+    /// Returns single_linked_list size.
     ///
     /// Efficiency: O(1)
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.size
     }
 
-    /// Checks if the list is empty.
+    /// Checks if the single_linked_list is empty.
     /// Efficiency: O(1)
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.size == 0
     }
 
-    /// Returns the payload value of the first node in the list.
+    /// Returns the payload value of the first node in the single_linked_list.
     ///
     /// Efficiency: O(1)
-    pub fn head(&self) -> Option<&T> {
+    fn head(&self) -> Option<&T> {
         if self.head.is_null() {
             None
         } else {
@@ -70,10 +107,10 @@ impl<T> SingleLinkedList<T> {
         }
     }
 
-    /// Returns the payload value of the last node in the list.
+    /// Returns the payload value of the last node in the single_linked_list.
     ///
     /// Efficiency: O(1)
-    pub fn last(&self) -> Option<&T> {
+    fn last(&self) -> Option<&T> {
         if self.last.is_null() {
             None
         } else {
@@ -81,10 +118,10 @@ impl<T> SingleLinkedList<T> {
         }
     }
 
-    /// Returns a list item by index, or error if index out of bounds.
+    /// Returns a single_linked_list item by index, or error if index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn get(&self, index: usize) -> Result<&T> {
+    fn get(&self, index: usize) -> Result<&T> {
         if index + 1 == self.size {
             return self.last().ok_or(DSError::IndexOutOfBounds {
                 index,
@@ -99,10 +136,10 @@ impl<T> SingleLinkedList<T> {
         })
     }
 
-    /// Returns a mutable list item by index, or error if index out of bounds.
+    /// Returns a mutable single_linked_list item by index, or error if index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn get_mut(&mut self, index: usize) -> Result<&mut T> {
+    fn get_mut(&mut self, index: usize) -> Result<&mut T> {
         let list_size = self.size;
         if index + 1 == list_size {
             return Ok(unsafe { &mut (*self.last).payload });
@@ -115,25 +152,25 @@ impl<T> SingleLinkedList<T> {
         })
     }
 
-    /// Returns an iterator over the immutable items of the list.
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    /// Returns an iterator over the immutable items of the single_linked_list.
+    fn iter(&self) -> impl Iterator<Item = &'a T> {
         Iter::new(self.head)
     }
 
-    /// Returns an iterator over the mutable items of the list.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+    /// Returns an iterator over the mutable items of the single_linked_list.
+    fn iter_mut(&mut self) -> impl Iterator<Item = &'a mut T> {
         IterMut::new(self.head)
     }
 
-    /// Returns an iterator that consumes the list.
-    pub fn into_iter(self) -> impl Iterator<Item = T> {
+    /// Returns an iterator that consumes the single_linked_list.
+    fn into_iter(self) -> impl Iterator<Item = T> {
         IntoIter::new(self)
     }
 
-    /// Adds a new node to the end of the list.
+    /// Adds a new node to the end of the single_linked_list.
     ///
     /// Efficiency: O(1)
-    pub fn push_back(&mut self, payload: T) {
+    fn push_back(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
             self.head = ptr;
@@ -144,10 +181,10 @@ impl<T> SingleLinkedList<T> {
         self.size += 1;
     }
 
-    /// Adds a new node to the front of the list.
+    /// Adds a new node to the front of the single_linked_list.
     ///
     /// Efficiency: O(1)
-    pub fn push_front(&mut self, payload: T) {
+    fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
             self.last = ptr;
@@ -158,15 +195,15 @@ impl<T> SingleLinkedList<T> {
         self.size += 1;
     }
 
-    /// Removes a node from the end of the list and returns its payload value.
+    /// Removes a node from the end of the single_linked_list and returns its payload value.
     ///
     /// Efficiency: O(n)
-    pub fn pop_back(&mut self) -> Option<T> {
+    fn pop_back(&mut self) -> Option<T> {
         if self.is_empty() {
             return None;
         }
 
-        // Case: only one node in list
+        // Case: only one node in single_linked_list
         if self.head == self.last {
             let payload = unsafe { Box::from_raw(self.head).payload };
             self.head = ptr::null_mut();
@@ -198,10 +235,10 @@ impl<T> SingleLinkedList<T> {
         Some(payload)
     }
 
-    /// Removes a node from the front of the list and returns its payload value.
+    /// Removes a node from the front of the single_linked_list and returns its payload value.
     ///
     /// Efficiency: O(1)
-    pub fn pop_front(&mut self) -> Option<T> {
+    fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
             return None;
         }
@@ -216,11 +253,11 @@ impl<T> SingleLinkedList<T> {
         Some(old_head.payload)
     }
 
-    /// Insert a new node at the specified location in the list.
+    /// Insert a new node at the specified location in the single_linked_list.
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
+    fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.size {
             return Err(DSError::IndexOutOfBounds {
                 index,
@@ -256,11 +293,11 @@ impl<T> SingleLinkedList<T> {
         Ok(())
     }
 
-    /// Removes a node from the specified location in the list.
+    /// Removes a node from the specified location in the single_linked_list.
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
-    pub fn remove(&mut self, index: usize) -> Result<T> {
+    fn remove(&mut self, index: usize) -> Result<T> {
         if index >= self.size {
             return Err(DSError::IndexOutOfBounds {
                 index,
@@ -293,43 +330,32 @@ impl<T> SingleLinkedList<T> {
         Ok(removed.payload)
     }
 
-    /// Removes all items from the list.
+    /// Removes all items from the single_linked_list.
     ///
     /// Efficiency: O(n)
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         while self.len() != 0 {
             let _ = self.pop_front();
         }
-    }
-
-    /// Finds the first node whose payload is equal to the given one and returns its index.
-    /// Returns `None` if there is no such node.
-    ///
-    /// Efficiency: O(n)
-    pub fn find(&self, value: &T) -> Option<usize>
-    where
-        T: PartialEq,
-    {
-        self.find_if(|item| item == value)
     }
 
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
+    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
         self.iter()
             .enumerate()
             .find(|(_, item)| predicate(*item))
             .map(|(index, _)| index)
     }
 
-    /// Sorts the list in ascending order using merge sort algorithm.
+    /// Sorts the single_linked_list in ascending order using merge sort algorithm.
     ///
     /// Efficiency: O(n log n)
     ///
     /// Space complexity: O(log n) due to recursion stack
-    pub fn sort(&mut self)
+    fn sort(&mut self)
     where
         T: PartialOrd + Default,
     {
@@ -337,7 +363,7 @@ impl<T> SingleLinkedList<T> {
             return; // Already sorted
         }
 
-        // Extract the head and reset the list
+        // Extract the head and reset the single_linked_list
         let head = self.head;
         self.head = ptr::null_mut();
         self.last = ptr::null_mut();
@@ -346,31 +372,8 @@ impl<T> SingleLinkedList<T> {
         // Sort the extracted nodes and get new head
         let sorted_head = merge_sort(head);
 
-        // Reconstruct the list with sorted nodes
+        // Reconstruct the single_linked_list with sorted nodes
         self.rebuild_from_sorted_list(sorted_head);
-    }
-
-    /// Rebuilds the SingleLinkedList from a sorted list of nodes
-    fn rebuild_from_sorted_list(&mut self, head: *mut Node<T>) {
-        self.head = head;
-        self.size = 0;
-
-        if head.is_null() {
-            self.last = std::ptr::null_mut();
-            return;
-        }
-
-        // Traverse to find the last node and count size
-        let mut current = head;
-        self.size = 1;
-
-        unsafe {
-            while !(*current).next.is_null() {
-                current = (*current).next;
-                self.size += 1;
-            }
-            self.last = current;
-        }
     }
 }
 
@@ -392,7 +395,7 @@ impl<T> Drop for SingleLinkedList<T> {
 mod tests {
     use super::*;
 
-    // Helper function to create a list with values [0, 1, 2, ..., n-1]
+    // Helper function to create a single_linked_list with values [0, 1, 2, ..., n-1]
     fn setup_list(n: usize) -> SingleLinkedList<usize> {
         let mut list = SingleLinkedList::new();
         for i in 0..n {
@@ -544,7 +547,7 @@ mod tests {
             // Get element in the middle
             let _ = list.get(1).unwrap();
 
-            // Verify list is unchanged
+            // Verify single_linked_list is unchanged
             assert_eq!(
                 list.len(),
                 3,
@@ -710,7 +713,7 @@ mod tests {
             let mut_ref = list.get_mut(1).unwrap();
             *mut_ref *= 10; // 2 becomes 20
 
-            // Verify list structure is intact
+            // Verify single_linked_list structure is intact
             assert_eq!(
                 list.len(),
                 3,
@@ -785,7 +788,7 @@ mod tests {
                 "get_mut() with out-of-bounds index should return error"
             );
 
-            // Ensure list is still valid after failed operation
+            // Ensure single_linked_list is still valid after failed operation
             assert_eq!(
                 list.len(),
                 2,
@@ -1265,7 +1268,7 @@ mod tests {
                 "insert with large out-of-bounds index should return error"
             );
 
-            // Empty list with non-zero index
+            // Empty single_linked_list with non-zero index
             let mut empty_list = SingleLinkedList::new();
             assert!(
                 empty_list.insert(1, 42).is_err(),
@@ -1324,7 +1327,7 @@ mod tests {
 
         #[test]
         fn test_insert_edge_cases() {
-            // Test inserting into a list with one element
+            // Test inserting into a single_linked_list with one element
             let mut single_element = SingleLinkedList::new();
             single_element.push_back(100);
 
@@ -1404,7 +1407,7 @@ mod tests {
                 "remove with large out-of-bounds index should return error"
             );
 
-            // Empty list
+            // Empty single_linked_list
             let mut empty_list = SingleLinkedList::<u8>::new();
             assert!(
                 empty_list.remove(0).is_err(),
@@ -1482,7 +1485,7 @@ mod tests {
 
         #[test]
         fn test_remove_edge_cases() {
-            // Test removing from a list with two elements
+            // Test removing from a single_linked_list with two elements
             let mut two_elements = SingleLinkedList::new();
             two_elements.push_back(10);
             two_elements.push_back(20);
@@ -1586,7 +1589,7 @@ mod tests {
             list.clear();
             assert!(list.is_empty(), "list should be empty after clear()");
 
-            // Reuse the list after clearing
+            // Reuse the single_linked_list after clearing
             list.push_back(100);
             list.push_back(200);
 
@@ -1650,13 +1653,13 @@ mod tests {
 
             list.clear();
 
-            // Verify the list is properly cleared
+            // Verify the single_linked_list is properly cleared
             assert!(list.is_empty(), "list should be empty after clear()");
             assert_eq!(list.len(), 0, "length should be 0 after clear()");
             assert_eq!(list.head(), None, "head should be None after clear()");
             assert_eq!(list.last(), None, "last should be None after clear()");
 
-            // Ensure we can create a new list and it works correctly
+            // Ensure we can create a new single_linked_list and it works correctly
             let mut new_list = SingleLinkedList::new();
             new_list.push_back(100);
             assert_eq!(
@@ -1668,11 +1671,11 @@ mod tests {
 
         #[test]
         fn test_clear_performance_consistency() {
-            // Test that clear() works correctly regardless of list size
+            // Test that clear() works correctly regardless of single_linked_list size
             for size in &[0, 1, 5, 10, 100] {
                 let mut list = SingleLinkedList::new();
 
-                // Fill list with values
+                // Fill single_linked_list with values
                 for i in 0..*size {
                     list.push_back(i);
                 }
@@ -1887,7 +1890,7 @@ mod tests {
 
         #[test]
         fn test_sort_large_list() {
-            // Create a large list with random-like pattern
+            // Create a large single_linked_list with random-like pattern
             let mut data: Vec<i32> = (1..=1000).collect();
             // Shuffle by reversing every 10 elements
             for chunk in data.chunks_mut(10) {
@@ -2030,7 +2033,7 @@ mod tests {
                 assert_eq!(collected, vec![10, 11, 12, 13, 14]);
             }
 
-            // After IntoIterator the list is destroyed
+            // After IntoIterator the single_linked_list is destroyed
             assert_eq!(tracker.alive().count(), 0);
             assert_eq!(tracker.dropped().count(), 5);
         }
@@ -2061,7 +2064,7 @@ mod tests {
                 "After removing 3 elements, 47 should remain alive"
             );
 
-            // Clear the list completely
+            // Clear the single_linked_list completely
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
@@ -2241,7 +2244,7 @@ mod tests {
                 "10 elements should be alive (10 original + 1 attempted insert)"
             );
 
-            // Clearing the list
+            // Clearing the single_linked_list
             while list.len() > 0 {
                 let _ = list.pop_front();
             }
@@ -2263,7 +2266,7 @@ mod tests {
         // Test that clear() properly frees all nodes and there's no memory leak
         #[test]
         fn test_clear_no_memory_leak_with_drop_tracker() {
-            // Create a list with tracked nodes
+            // Create a single_linked_list with tracked nodes
             let mut list = SingleLinkedList::new();
             let mut tracker = DropTracker::new();
 
@@ -2277,7 +2280,7 @@ mod tests {
             assert_eq!(list.len(), 5, "list should have 5 elements before clear()");
             assert_eq!(tracker.alive().count(), 5, "no nodes should be dropped yet");
 
-            // Clear the list — all nodes should be freed and their Drop impl called
+            // Clear the single_linked_list — all nodes should be freed and their Drop impl called
             list.clear();
 
             assert!(list.is_empty(), "list should be empty after clear()");
@@ -2295,7 +2298,7 @@ mod tests {
             );
         }
 
-        // Test memory cleanup when clear() is called on a list with complex types
+        // Test memory cleanup when clear() is called on a single_linked_list with complex types
         #[test]
         fn test_clear_complex_types_no_memory_leak() {
             let mut list = SingleLinkedList::new();

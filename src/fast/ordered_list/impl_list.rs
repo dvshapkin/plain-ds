@@ -10,7 +10,7 @@ pub struct OrderedList<T> {
 }
 
 impl<T> OrderedList<T> {
-    /// Creates empty list.
+    /// Creates empty single_linked_list.
     pub fn new() -> Self {
         Self {
             head: ptr::null_mut(),
