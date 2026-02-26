@@ -3,6 +3,7 @@ use std::ptr;
 use super::IntoIter;
 use crate::core::List;
 use crate::core::node_one_link::{Iter, IterMut, Node};
+use crate::list::common;
 
 type Comparator<T> = fn(&T, &T) -> bool;
 
@@ -23,6 +24,27 @@ impl<T: PartialOrd> OrderedList<T> {
             compare: |lhs: &T, rhs: &T| lhs < rhs,
         }
     }
+
+    /// Creates list from slice.
+    pub fn from_slice(slice: &mut [T]) -> Self
+    where
+        T: Clone + Ord,
+    {
+        let mut list = OrderedList::new();
+        // if !slice.is_sorted() {
+        //     slice.sort();
+        // }
+        for value in slice.iter() {
+            list.push((*value).clone());
+        }
+        list
+    }
+
+    // CAUTION: Use only if it will not cause disruption to the order.
+    // fn push_back(&mut self, payload: T) {
+    //     common::push_back(self, self.head, self.last, payload);
+    //     self.size += 1;
+    // }
 }
 
 impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
@@ -39,14 +61,6 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     }
 
     fn last(&self) -> Option<&T> {
-        todo!()
-    }
-
-    fn get(&self, index: usize) -> crate::Result<&T> {
-        todo!()
-    }
-
-    fn get_mut(&mut self, index: usize) -> crate::Result<&mut T> {
         todo!()
     }
 
@@ -114,10 +128,6 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     }
 
     fn remove(&mut self, index: usize) -> crate::Result<T> {
-        todo!()
-    }
-
-    fn clear(&mut self) {
         todo!()
     }
 

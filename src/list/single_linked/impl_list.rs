@@ -5,6 +5,7 @@ use std::ptr;
 use crate::core::error::{DSError, Result};
 use crate::core::List;
 use crate::core::node_one_link::{Iter, IterMut, Node, merge_sort};
+use crate::list::common;
 use super::IntoIter;
 
 pub struct SingleLinkedList<T> {
@@ -144,12 +145,6 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
         self.size
     }
 
-    /// Checks if the list is empty.
-    /// Efficiency: O(1)
-    fn is_empty(&self) -> bool {
-        self.size == 0
-    }
-
     /// Returns the payload value of the first node in the list.
     ///
     /// Efficiency: O(1)
@@ -170,40 +165,6 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
         } else {
             Some(unsafe { &(*self.last).payload })
         }
-    }
-
-    /// Returns a list item by index, or error if index out of bounds.
-    ///
-    /// Efficiency: O(n)
-    fn get(&self, index: usize) -> Result<&T> {
-        if index + 1 == self.size {
-            return self.last().ok_or(DSError::IndexOutOfBounds {
-                index,
-                len: self.size,
-            });
-        }
-
-        // Finding by index
-        self.iter().nth(index).ok_or(DSError::IndexOutOfBounds {
-            index,
-            len: self.size,
-        })
-    }
-
-    /// Returns a mutable list item by index, or error if index out of bounds.
-    ///
-    /// Efficiency: O(n)
-    fn get_mut(&mut self, index: usize) -> Result<&mut T> {
-        let list_size = self.size;
-        if index + 1 == list_size {
-            return Ok(unsafe { &mut (*self.last).payload });
-        }
-
-        // Finding by index
-        self.iter_mut().nth(index).ok_or(DSError::IndexOutOfBounds {
-            index,
-            len: list_size,
-        })
     }
 
     /// Returns an iterator over the immutable items of the list.
@@ -328,26 +289,6 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
 
         self.size -= 1;
         Ok(removed.payload)
-    }
-
-    /// Removes all items from the list.
-    ///
-    /// Efficiency: O(n)
-    fn clear(&mut self) {
-        while self.len() != 0 {
-            let _ = self.pop_front();
-        }
-    }
-
-    /// Finds the first node whose payload satisfies the predicate and returns its index.
-    /// Returns `None` if there is no such node.
-    ///
-    /// Efficiency: O(n)
-    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
-        self.iter()
-            .enumerate()
-            .find(|(_, item)| predicate(*item))
-            .map(|(index, _)| index)
     }
 
     /// Sorts the list in ascending order using merge sort algorithm.
