@@ -3,11 +3,8 @@
 use std::ptr;
 
 use crate::core::error::{DSError, Result};
-use crate::core::node_one_link::Iter;
-use crate::core::node_one_link::IterMut;
-use crate::core::node_one_link::merge_sort;
-use crate::core::node_one_link::Node;
-use crate::light::list::IntoIter;
+use crate::core::node_one_link::{Iter, IterMut, Node, merge_sort};
+use super::IntoIter;
 
 pub struct SingleLinkedList<T> {
     head: *mut Node<T>, // 8 bytes
