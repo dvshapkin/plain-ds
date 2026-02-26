@@ -1,9 +1,8 @@
 use std::ptr;
 
-use super::IntoIter;
 use crate::core::List;
 use crate::core::node_one_link::Node;
-use crate::list::common::ListCommon;
+use crate::list::common::{IntoIter, ListCommon};
 
 type Comparator<T> = fn(&T, &T) -> bool;
 
@@ -78,7 +77,7 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
 
     /// Returns an iterator that consumes the list.
     fn into_iter(self) -> impl Iterator<Item = T> {
-        IntoIter::new(self)
+        self.state.into_iter()
     }
 
     /// Adds a new node to the list according to the sort order.

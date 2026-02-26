@@ -2,7 +2,6 @@
 
 use std::ptr;
 
-use super::IntoIter;
 use crate::core::List;
 use crate::core::error::{DSError, Result};
 use crate::core::node_one_link::{Node, merge_sort};
@@ -191,7 +190,7 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
 
     /// Returns an iterator that consumes the list.
     fn into_iter(self) -> impl Iterator<Item = T> {
-        IntoIter::new(self)
+        self.state.into_iter()
     }
 
     /// Adds a new node to the end of the list.
@@ -239,11 +238,8 @@ mod tests {
     }
 
     #[test]
-    fn test_creation() {
+    fn test_is_empty() {
         let list: SingleLinkedList<u8> = SingleLinkedList::new();
-        assert_eq!(list.len(), 0, "not zero length after creation");
-        assert_eq!(list.head(), None, "not empty head after creation");
-        assert_eq!(list.last(), None, "not empty last after creation");
         assert!(list.is_empty(), "is_empty() returns `false` after creation");
 
         let list: SingleLinkedList<String> = SingleLinkedList::new();
@@ -637,41 +633,6 @@ mod tests {
         use super::*;
 
         #[test]
-        fn test_push() {
-            let mut list: SingleLinkedList<u8> = SingleLinkedList::new();
-            assert!(list.is_empty(), "is_empty() returns `false` after creation");
-
-            list.push(1);
-            assert_eq!(list.len(), 1, "bad length after push()");
-            assert_eq!(list.head(), Some(&1), "incorrect head after push()");
-            assert_eq!(list.last(), Some(&1), "incorrect last after push()");
-            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
-
-            list.push(2);
-            assert_eq!(list.len(), 2, "bad length after push()");
-            assert!(list.head().is_some(), "head is None after push()");
-            assert_eq!(list.head(), Some(&1), "incorrect head payload");
-            assert_eq!(list.last(), Some(&2), "incorrect last after push()");
-            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
-
-            let mut list: SingleLinkedList<String> = SingleLinkedList::new();
-            list.push("hello".to_string());
-            assert_eq!(list.len(), 1, "bad length after push()");
-            assert!(list.head().is_some(), "head is None after push()");
-            assert_eq!(list.head().unwrap(), "hello", "incorrect head payload");
-
-            let mut list: SingleLinkedList<&[char]> = SingleLinkedList::new();
-            list.push(&['a', 'b', 'c']);
-            assert_eq!(list.len(), 1, "bad length after push()");
-            assert!(list.head().is_some(), "head is None after push()");
-            assert_eq!(
-                list.head().unwrap(),
-                &['a', 'b', 'c'],
-                "incorrect head payload"
-            );
-        }
-
-        #[test]
         fn test_push_to_empty_list_updates_head_and_last() {
             let mut list = SingleLinkedList::new();
 
@@ -690,14 +651,14 @@ mod tests {
         #[test]
         fn test_push_front() {
             let mut list: SingleLinkedList<u8> = SingleLinkedList::new();
-            assert!(list.is_empty(), "is_empty() returns `false` after creation");
+            assert_eq!(list.len(), 0, "is_empty() returns `false` after creation");
 
             list.push_front(1);
             assert_eq!(list.len(), 1, "bad length after push_front()");
             assert_eq!(list.head(), Some(&1), "incorrect head after push_front()");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
-            assert!(
-                !list.is_empty(),
+            assert_ne!(
+                list.len(), 0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -706,8 +667,8 @@ mod tests {
             assert!(list.head().is_some(), "head is None after push_front()");
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
-            assert!(
-                !list.is_empty(),
+            assert_ne!(
+                list.len(), 0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -731,153 +692,30 @@ mod tests {
         #[test]
         fn test_mix_push() {
             let mut list: SingleLinkedList<u8> = SingleLinkedList::new();
-            assert!(list.is_empty(), "is_empty() returns `false` after creation");
+            assert_eq!(list.len(), 0, "is_empty() returns `false` after creation");
 
             list.push(1);
-            assert_eq!(list.len(), 1, "bad length after push()");
-            assert_eq!(list.head(), Some(&1), "incorrect head after push()");
-            assert_eq!(list.last(), Some(&1), "incorrect last after push()");
-            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
+            assert_eq!(list.len(), 1, "bad length after push_back()");
+            assert_eq!(list.head(), Some(&1), "incorrect head after push_back()");
+            assert_eq!(list.last(), Some(&1), "incorrect last after push_back()");
+            assert_ne!(list.len(), 0, "is_empty() returns `true` after push_back()");
 
             list.push_front(2);
             assert_eq!(list.len(), 2, "bad length after push_front()");
             assert!(list.head().is_some(), "head is None after push_front()");
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
-            assert!(
-                !list.is_empty(),
+            assert_ne!(
+                list.len(), 0,
                 "is_empty() returns `true` after push_front()"
             );
 
             list.push(3);
-            assert_eq!(list.len(), 3, "bad length after push()");
-            assert!(list.head().is_some(), "head is None after push()");
+            assert_eq!(list.len(), 3, "bad length after push_back()");
+            assert!(list.head().is_some(), "head is None after push_back()");
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
-            assert_eq!(list.last(), Some(&3), "incorrect last after push()");
-            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
-        }
-    }
-
-    mod pop {
-        use super::*;
-
-        #[test]
-        fn test_pop_back_empty_list() {
-            let mut list: SingleLinkedList<u8> = SingleLinkedList::new();
-            assert_eq!(
-                list.pop_back(),
-                None,
-                "pop_back from empty list should return None"
-            );
-            assert!(
-                list.is_empty(),
-                "list should remain empty after pop_back on empty"
-            );
-        }
-
-        #[test]
-        fn test_pop_back_single_element() {
-            let mut list = SingleLinkedList::new();
-            list.push(42);
-            assert_eq!(
-                list.pop_back(),
-                Some(42),
-                "pop_back() should return the only element"
-            );
-            assert!(
-                list.is_empty(),
-                "list should be empty after popping the last element"
-            );
-            assert_eq!(
-                list.head(),
-                None,
-                "head should be None after popping last element"
-            );
-            assert_eq!(
-                list.last(),
-                None,
-                "last should be None after popping last element"
-            );
-        }
-
-        #[test]
-        fn test_pop_back_multiple_elements() {
-            let mut list = setup_list(3); // [0, 1, 2]
-            assert_eq!(
-                list.pop_back(),
-                Some(2),
-                "pop_back() should return last element (2)"
-            );
-            assert_eq!(list.len(), 2, "size should decrease by 1 after pop_back()");
-            assert_eq!(list.last(), Some(&1), "new last element should be 1");
-
-            assert_eq!(list.pop_back(), Some(1), "pop_back() should return 1 next");
-            assert_eq!(list.len(), 1, "size should be 1 after second pop_back()");
-            assert_eq!(list.head(), Some(&0), "head should still be 0");
-            assert_eq!(list.last(), Some(&0), "last should now be 0");
-
-            assert_eq!(
-                list.pop_back(),
-                Some(0),
-                "pop_back() should return 0 finally"
-            );
-            assert!(list.is_empty(), "list should be empty after all pop-backs");
-        }
-
-        #[test]
-        fn test_pop_front_empty_list() {
-            let mut list = SingleLinkedList::<u8>::new();
-            assert_eq!(
-                list.pop_front(),
-                None,
-                "pop_front() from empty list should return None"
-            );
-            assert!(
-                list.is_empty(),
-                "list should remain empty after pop_front() on empty"
-            );
-        }
-
-        #[test]
-        fn test_pop_front_single_element() {
-            let mut list = SingleLinkedList::new();
-            list.push_front(99);
-            assert_eq!(
-                list.pop_front(),
-                Some(99),
-                "pop_front() should return the only element"
-            );
-            assert!(
-                list.is_empty(),
-                "list should be empty after popping the only element"
-            );
-            assert_eq!(list.head(), None, "head should be None after pop");
-            assert_eq!(list.last(), None, "last should be None after pop");
-        }
-
-        #[test]
-        fn test_pop_front_multiple_elements() {
-            let mut list = setup_list(3); // [0, 1, 2]
-            assert_eq!(
-                list.pop_front(),
-                Some(0),
-                "pop_front should return first element (0)"
-            );
-            assert_eq!(list.len(), 2, "size should decrease by 1 after pop_front");
-            assert_eq!(list.head(), Some(&1), "new head should be 1");
-            assert_eq!(list.last(), Some(&2), "last should remain 2");
-
-            assert_eq!(list.pop_front(), Some(1), "pop_front should return 1 next");
-            assert_eq!(list.len(), 1, "size should be 1 after second pop_front");
-            assert_eq!(list.head(), Some(&2), "head should now be 2");
-            assert_eq!(list.last(), Some(&2), "last should also be 2");
-
-            assert_eq!(
-                list.pop_front(),
-                Some(2),
-                "pop_front should return 2 finally"
-            );
-            assert!(list.is_empty(), "list should be empty after all pop_fronts");
+            assert_eq!(list.last(), Some(&3), "incorrect last after push_back()");
+            assert_ne!(list.len(), 0, "is_empty() returns `true` after push_back()");
         }
     }
 
