@@ -2,25 +2,21 @@
 
 use std::ptr;
 
-use crate::core::error::{DSError, Result};
-use crate::core::List;
-use crate::core::node_one_link::{Iter, IterMut, Node, merge_sort};
-use crate::list::common;
 use super::IntoIter;
+use crate::core::List;
+use crate::core::error::{DSError, Result};
+use crate::core::node_one_link::{Node, merge_sort};
+use crate::list::common::ListCommon;
 
 pub struct SingleLinkedList<T> {
-    head: *mut Node<T>, // 8 bytes
-    last: *mut Node<T>, // 8 bytes
-    size: usize,        // 8 bytes
+    state: ListCommon<T>,
 }
 
 impl<T> SingleLinkedList<T> {
     /// Creates empty single-linked list.
     pub fn new() -> Self {
         Self {
-            head: ptr::null_mut(),
-            last: ptr::null_mut(),
-            size: 0,
+            state: ListCommon::new(),
         }
     }
 
@@ -43,9 +39,7 @@ impl<T> SingleLinkedList<T> {
     where
         T: Clone,
     {
-        let mut vec = Vec::with_capacity(self.size);
-        vec.extend(self.iter().cloned());
-        vec
+        self.state.to_vec()
     }
 
     /// Adds a new node to the front of the list.
@@ -54,12 +48,12 @@ impl<T> SingleLinkedList<T> {
     fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
-            self.last = ptr;
+            self.state.last = ptr;
         } else {
-            unsafe { (*ptr).next = self.head }
+            unsafe { (*ptr).next = self.state.head }
         }
-        self.head = ptr;
-        self.size += 1;
+        self.state.head = ptr;
+        self.state.size += 1;
     }
 
     /// Insert a new node at the specified location in the list.
@@ -67,13 +61,13 @@ impl<T> SingleLinkedList<T> {
     ///
     /// Efficiency: O(n)
     fn insert(&mut self, index: usize, payload: T) -> Result<()> {
-        if index > self.size {
+        if index > self.state.size {
             return Err(DSError::IndexOutOfBounds {
                 index,
-                len: self.size,
+                len: self.state.size,
             });
         }
-        if index == self.size {
+        if index == self.state.size {
             self.push(payload);
             return Ok(());
         }
@@ -83,7 +77,7 @@ impl<T> SingleLinkedList<T> {
         }
 
         // Finding the insert point
-        let mut current = self.head;
+        let mut current = self.state.head;
         let mut index = index;
         unsafe {
             while index > 1 {
@@ -98,7 +92,7 @@ impl<T> SingleLinkedList<T> {
             (*current).next = Box::into_raw(boxed);
         }
 
-        self.size += 1;
+        self.state.size += 1;
         Ok(())
     }
 
@@ -113,26 +107,52 @@ impl<T> SingleLinkedList<T> {
         self.find_if(|item| item == value)
     }
 
+    /// Sorts the list in ascending order using merge sort algorithm.
+    ///
+    /// Efficiency: O(n log n)
+    ///
+    /// Space complexity: O(log n) due to recursion stack
+    fn sort(&mut self)
+    where
+        T: PartialOrd + Default,
+    {
+        if self.state.len() <= 1 {
+            return; // Already sorted
+        }
+
+        // Extract the head and reset the list
+        let head = self.state.head;
+        self.state.head = ptr::null_mut();
+        self.state.last = ptr::null_mut();
+        self.state.size = 0;
+
+        // Sort the extracted nodes and get new head
+        let sorted_head = merge_sort(head);
+
+        // Reconstruct the list with sorted nodes
+        self.rebuild_from_sorted_list(sorted_head);
+    }
+
     /// Rebuilds the list from a sorted list of nodes
     fn rebuild_from_sorted_list(&mut self, head: *mut Node<T>) {
-        self.head = head;
-        self.size = 0;
+        self.state.head = head;
+        self.state.size = 0;
 
         if head.is_null() {
-            self.last = std::ptr::null_mut();
+            self.state.last = std::ptr::null_mut();
             return;
         }
 
         // Traverse to find the last node and count size
         let mut current = head;
-        self.size = 1;
+        self.state.size = 1;
 
         unsafe {
             while !(*current).next.is_null() {
                 current = (*current).next;
-                self.size += 1;
+                self.state.size += 1;
             }
-            self.last = current;
+            self.state.last = current;
         }
     }
 }
@@ -142,39 +162,31 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
     ///
     /// Efficiency: O(1)
     fn len(&self) -> usize {
-        self.size
+        self.state.len()
     }
 
     /// Returns the payload value of the first node in the list.
     ///
     /// Efficiency: O(1)
     fn head(&self) -> Option<&T> {
-        if self.head.is_null() {
-            None
-        } else {
-            Some(unsafe { &(*self.head).payload })
-        }
+        self.state.head()
     }
 
     /// Returns the payload value of the last node in the list.
     ///
     /// Efficiency: O(1)
     fn last(&self) -> Option<&T> {
-        if self.last.is_null() {
-            None
-        } else {
-            Some(unsafe { &(*self.last).payload })
-        }
+        self.state.last()
     }
 
     /// Returns an iterator over the immutable items of the list.
     fn iter(&self) -> impl Iterator<Item = &'a T> {
-        Iter::new(self.head)
+        self.state.iter()
     }
 
     /// Returns an iterator over the mutable items of the list.
     fn iter_mut(&mut self) -> impl Iterator<Item = &'a mut T> {
-        IterMut::new(self.head)
+        self.state.iter_mut()
     }
 
     /// Returns an iterator that consumes the list.
@@ -186,72 +198,21 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
     ///
     /// Efficiency: O(1)
     fn push(&mut self, payload: T) {
-        let ptr = Box::into_raw(Box::new(Node::new(payload)));
-        if self.is_empty() {
-            self.head = ptr;
-        } else {
-            unsafe { (*self.last).next = ptr };
-        }
-        self.last = ptr;
-        self.size += 1;
+        self.state.push_back(payload);
     }
 
     /// Removes a node from the end of the list and returns its payload value.
     ///
     /// Efficiency: O(n)
     fn pop_back(&mut self) -> Option<T> {
-        if self.is_empty() {
-            return None;
-        }
-
-        // Case: only one node in list
-        if self.head == self.last {
-            let payload = unsafe { Box::from_raw(self.head).payload };
-            self.head = ptr::null_mut();
-            self.last = ptr::null_mut();
-            self.size -= 1;
-            return Some(payload);
-        }
-
-        // Finding the penultimate node
-        let mut current = self.head;
-        unsafe {
-            while (*current).next != self.last {
-                current = (*current).next;
-            }
-        }
-
-        // current now points to the penultimate node
-        let old_last = self.last;
-        self.last = current;
-        unsafe { (*self.last).next = ptr::null_mut() };
-
-        // Release the last node and extract the payload
-        let payload = unsafe {
-            let boxed = Box::from_raw(old_last);
-            boxed.payload
-        };
-
-        self.size -= 1;
-        Some(payload)
+        self.state.pop_back()
     }
 
     /// Removes a node from the front of the list and returns its payload value.
     ///
     /// Efficiency: O(1)
     fn pop_front(&mut self) -> Option<T> {
-        if self.is_empty() {
-            return None;
-        }
-
-        let old_head = unsafe { Box::from_raw(self.head) };
-        self.head = old_head.next;
-        if self.len() == 1 {
-            self.last = ptr::null_mut();
-        }
-
-        self.size -= 1;
-        Some(old_head.payload)
+        self.state.pop_front()
     }
 
     /// Removes a node from the specified location in the list.
@@ -259,78 +220,10 @@ impl<'a, T: 'a> List<'a, T> for SingleLinkedList<T> {
     ///
     /// Efficiency: O(n)
     fn remove(&mut self, index: usize) -> Result<T> {
-        if index >= self.size {
-            return Err(DSError::IndexOutOfBounds {
-                index,
-                len: self.size,
-            });
-        }
-        if index == 0 {
-            // remove first
-            return Ok(self.pop_front().unwrap());
-        }
-        if index + 1 == self.size {
-            // remove last
-            return Ok(self.pop_back().unwrap());
-        }
-
-        // Finding the removing item
-        let mut before = self.head;
-        let mut index = index;
-        unsafe {
-            while index > 1 {
-                before = (*before).next;
-                index -= 1;
-            }
-        }
-
-        let removed = unsafe { Box::from_raw((*before).next) };
-        unsafe { (*before).next = removed.next };
-
-        self.size -= 1;
-        Ok(removed.payload)
-    }
-
-    /// Sorts the list in ascending order using merge sort algorithm.
-    ///
-    /// Efficiency: O(n log n)
-    ///
-    /// Space complexity: O(log n) due to recursion stack
-    fn sort(&mut self)
-    where
-        T: PartialOrd + Default,
-    {
-        if self.size <= 1 {
-            return; // Already sorted
-        }
-
-        // Extract the head and reset the list
-        let head = self.head;
-        self.head = ptr::null_mut();
-        self.last = ptr::null_mut();
-        self.size = 0;
-
-        // Sort the extracted nodes and get new head
-        let sorted_head = merge_sort(head);
-
-        // Reconstruct the list with sorted nodes
-        self.rebuild_from_sorted_list(sorted_head);
+        self.state.remove(index)
     }
 }
 
-impl<T> Drop for SingleLinkedList<T> {
-    fn drop(&mut self) {
-        use std::mem::ManuallyDrop;
-
-        let mut current = ManuallyDrop::new(self.head);
-        while !current.is_null() {
-            unsafe {
-                let node = Box::from_raw(ManuallyDrop::take(&mut current));
-                current = ManuallyDrop::new(node.next);
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -752,20 +645,14 @@ mod tests {
             assert_eq!(list.len(), 1, "bad length after push()");
             assert_eq!(list.head(), Some(&1), "incorrect head after push()");
             assert_eq!(list.last(), Some(&1), "incorrect last after push()");
-            assert!(
-                !list.is_empty(),
-                "is_empty() returns `true` after push()"
-            );
+            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
 
             list.push(2);
             assert_eq!(list.len(), 2, "bad length after push()");
             assert!(list.head().is_some(), "head is None after push()");
             assert_eq!(list.head(), Some(&1), "incorrect head payload");
             assert_eq!(list.last(), Some(&2), "incorrect last after push()");
-            assert!(
-                !list.is_empty(),
-                "is_empty() returns `true` after push()"
-            );
+            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
 
             let mut list: SingleLinkedList<String> = SingleLinkedList::new();
             list.push("hello".to_string());
@@ -850,10 +737,7 @@ mod tests {
             assert_eq!(list.len(), 1, "bad length after push()");
             assert_eq!(list.head(), Some(&1), "incorrect head after push()");
             assert_eq!(list.last(), Some(&1), "incorrect last after push()");
-            assert!(
-                !list.is_empty(),
-                "is_empty() returns `true` after push()"
-            );
+            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
 
             list.push_front(2);
             assert_eq!(list.len(), 2, "bad length after push_front()");
@@ -870,10 +754,7 @@ mod tests {
             assert!(list.head().is_some(), "head is None after push()");
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&3), "incorrect last after push()");
-            assert!(
-                !list.is_empty(),
-                "is_empty() returns `true` after push()"
-            );
+            assert!(!list.is_empty(), "is_empty() returns `true` after push()");
         }
     }
 
@@ -1913,7 +1794,7 @@ mod tests {
             list.sort();
 
             // Verify that last pointer is correctly set to the last node
-            let last_value = unsafe { (*list.last).payload };
+            let last_value = unsafe { (*list.state.last).payload };
             assert_eq!(
                 last_value, 4,
                 "last pointer should point to the maximum element after sorting"

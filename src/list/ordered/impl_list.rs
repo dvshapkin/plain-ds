@@ -2,15 +2,13 @@ use std::ptr;
 
 use super::IntoIter;
 use crate::core::List;
-use crate::core::node_one_link::{Iter, IterMut, Node};
-use crate::list::common;
+use crate::core::node_one_link::Node;
+use crate::list::common::ListCommon;
 
 type Comparator<T> = fn(&T, &T) -> bool;
 
 pub struct OrderedList<T> {
-    head: *mut Node<T>, // 8 bytes
-    last: *mut Node<T>, // 8 bytes
-    size: usize,        // 8 bytes
+    state: ListCommon<T>,
     compare: Comparator<T>,
 }
 
@@ -18,9 +16,7 @@ impl<T: PartialOrd> OrderedList<T> {
     /// Creates empty ordered list.
     pub fn new() -> Self {
         Self {
-            head: ptr::null_mut(),
-            last: ptr::null_mut(),
-            size: 0,
+            state: ListCommon::new(),
             compare: |lhs: &T, rhs: &T| lhs < rhs,
         }
     }
@@ -31,29 +27,16 @@ impl<T: PartialOrd> OrderedList<T> {
         T: Clone + Ord,
     {
         let mut list = OrderedList::new();
-        // if !slice.is_sorted() {
-        //     slice.sort();
-        // }
         for value in slice.iter() {
             list.push((*value).clone());
         }
         list
     }
-
-    // CAUTION: Use only if it will not cause disruption to the order.
-    // fn push_back(&mut self, payload: T) {
-    //     common::push_back(self, self.head, self.last, payload);
-    //     self.size += 1;
-    // }
 }
 
 impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     fn len(&self) -> usize {
-        self.size
-    }
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.state.len()
     }
 
     fn head(&self) -> Option<&T> {
@@ -65,11 +48,11 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     }
 
     fn iter(&self) -> impl Iterator<Item = &'a T> {
-        Iter::new(self.head)
+        self.state.iter()
     }
 
     fn iter_mut(&mut self) -> impl Iterator<Item = &'a mut T> {
-        IterMut::new(self.head)
+        self.state.iter_mut()
     }
 
     fn into_iter(self) -> impl Iterator<Item = T> {
@@ -79,11 +62,11 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
     fn push(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
-            self.head = ptr;
-            self.last = ptr;
+            self.state.head = ptr;
+            self.state.last = ptr;
         } else {
             // Finding the insert point
-            let mut next = self.head;
+            let mut next = self.state.head;
             let mut prev: *mut Node<T> = ptr::null_mut();
             let mut done = false;
             unsafe {
@@ -101,41 +84,26 @@ impl<'a, T: 'a> List<'a, T> for OrderedList<T> {
                 }
                 if !done {
                     (*prev).next = ptr;
-                    self.last = ptr;
+                    self.state.last = ptr;
                 }
             }
         }
-        self.size += 1;
+        self.state.size += 1;
     }
 
     fn pop_back(&mut self) -> Option<T> {
-        todo!()
+        self.state.pop_back()
     }
 
     fn pop_front(&mut self) -> Option<T> {
-        if self.is_empty() {
-            return None;
-        }
-
-        let old_head = unsafe { Box::from_raw(self.head) };
-        self.head = old_head.next;
-        if self.len() == 1 {
-            self.last = ptr::null_mut();
-        }
-
-        self.size -= 1;
-        Some(old_head.payload)
+        self.state.pop_front()
     }
 
     fn remove(&mut self, index: usize) -> crate::Result<T> {
-        todo!()
+        self.state.remove(index)
     }
 
     fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
-        todo!()
-    }
-
-    fn sort(&mut self) {
         todo!()
     }
 }

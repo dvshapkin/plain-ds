@@ -1,5 +1,4 @@
 use crate::{DSError, Result};
-use crate::core::node_one_link::Iter;
 
 /// This trait defines common API for all list implementations.
 pub trait List<'a, T: 'a> {
@@ -7,7 +6,7 @@ pub trait List<'a, T: 'a> {
     fn len(&self) -> usize;
 
     /// Checks if the list is empty.
-    /// 
+    ///
     /// Efficiency: O(1)
     fn is_empty(&self) -> bool {
         self.len() == 0
@@ -80,9 +79,4 @@ pub trait List<'a, T: 'a> {
             .find(|(_, item)| predicate(*item))
             .map(|(index, _)| index)
     }
-
-    /// Sorts the list in ascending order.
-    fn sort(&mut self)
-    where
-        T: PartialOrd + Default;
 }
