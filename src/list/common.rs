@@ -20,6 +20,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Collect list values into a vector.
     ///
     /// Efficiency: O(n)
+    #[inline]
     pub fn to_vec(&self) -> Vec<T>
     where
         T: Clone,
@@ -32,6 +33,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Returns list size.
     ///
     /// Efficiency: O(1)
+    #[inline]
     pub fn len(&self) -> usize {
         self.size
     }
@@ -39,6 +41,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Returns the payload value of the first node in the list.
     ///
     /// Efficiency: O(1)
+    #[inline]
     pub fn head(&self) -> Option<&T> {
         if self.head.is_null() {
             None
@@ -50,6 +53,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Returns the payload value of the last node in the list.
     ///
     /// Efficiency: O(1)
+    #[inline]
     pub fn last(&self) -> Option<&T> {
         if self.last.is_null() {
             None
@@ -59,11 +63,13 @@ impl<'a, T: 'a> ListCommon<T> {
     }
 
     /// Returns an iterator over the immutable items of the list.
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &'a T> {
         Iter::new(self.head)
     }
 
     /// Returns an iterator over the mutable items of the list.
+    #[inline]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &'a mut T> {
         IterMut::new(self.head)
     }
@@ -71,6 +77,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Adds a new node to the end of the list.
     ///
     /// Efficiency: O(1)
+    #[inline]
     pub fn push_back(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.len() == 0 {
@@ -85,6 +92,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Removes a node from the end of the list and returns its payload value.
     ///
     /// Efficiency: O(n)
+    #[inline]
     pub fn pop_back(&mut self) -> Option<T> {
         if self.len() == 0 {
             return None;
@@ -125,6 +133,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Removes a node from the front of the list and returns its payload value.
     ///
     /// Efficiency: O(1)
+    #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
         if self.len() == 0 {
             return None;
@@ -144,6 +153,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
+    #[inline]
     pub fn remove(&mut self, index: usize) -> crate::Result<T> {
         if index >= self.size {
             return Err(DSError::IndexOutOfBounds {
