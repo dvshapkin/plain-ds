@@ -19,8 +19,8 @@ use crate::list::common::ListCommon;
 /// list.push(1);
 /// list.push(2);
 ///
-/// assert_eq!(list.get(0), Some(&1));
 /// assert_eq!(list.len(), 3);
+/// assert_eq!(list.to_vec(), vec![1, 2, 3]);
 /// ```
 pub struct SortedList<T> {
     state: ListCommon<T>,
@@ -35,9 +35,11 @@ impl<T> SortedList<T> {
     }
 
     /// Creates list from slice.
+    ///
+    /// Efficiency: O(n)
     pub fn from_slice(slice: &[T]) -> Self
     where
-        T: Clone + Ord,
+        T: Clone + PartialOrd,
     {
         let mut list = SortedList::new();
         for value in slice.iter() {
