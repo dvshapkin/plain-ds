@@ -10,7 +10,7 @@ checksum = "b0c59c89ce3a9cfb5bf9691fd33c4b295eb0fa3689ec8c20793f62dc97a6900a"
 
 [[package]]
 name = "plain-ds"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "drop-tracker",
 ]

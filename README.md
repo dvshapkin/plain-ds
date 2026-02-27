@@ -14,7 +14,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-plain-ds = "0.2"
+plain-ds = "0.3"
 ```
 
 Or via `cargo add`:
@@ -25,7 +25,7 @@ cargo add plain-ds
 
 ## What's new in last version?
 
-### [0.2.1]
+### [0.3.0]
 
 ### Fixed
 - README.md
