@@ -14,7 +14,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-plain-ds = "0.1"
+plain-ds = "0.2"
 ```
 
 Or via `cargo add`:
@@ -25,13 +25,10 @@ cargo add plain-ds
 
 ## What's new in last version?
 
-### [0.2.0]
-
-### Added
-- `SortedList` implementation
+### [0.2.1]
 
 ### Fixed
-- known bugs
+- README.md
 
 ## Overview
 
