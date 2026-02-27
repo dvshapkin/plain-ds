@@ -2,7 +2,7 @@
 
 use std::ptr;
 
-use crate::list::list_api::List;
+use crate::list::api::List;
 use crate::core::{DSError, Result};
 use crate::core::{Node, merge_sort};
 use crate::list::common::ListCommon;
