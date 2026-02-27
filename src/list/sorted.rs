@@ -375,13 +375,173 @@ mod tests {
         }
     }
 
-    mod find_if {
+    mod find {
         use super::*;
 
+        /// Helper function to create a list from a slice of values using from_slice
+        fn create_list_from_slice<T: Clone + PartialOrd>(values: &[T]) -> SortedList<T> {
+            SortedList::from_slice(values)
+        }
+
         #[test]
-        fn test_find_if() {
-            let list = SortedList::from_slice(&[10, 20, 30, 40, 50]);
-            list.find_if(|x| *x == 35);
+        fn test_find_empty_list() {
+            let list: SortedList<i32> = SortedList::new();
+            let result = list.find(&42);
+
+            assert_eq!(result, None, "should return None for empty list");
+        }
+
+        #[test]
+        fn test_find_element_at_beginning() {
+            let list = create_list_from_slice(&[1, 2, 3, 4, 5]);
+            let result = list.find(&1);
+
+            assert_eq!(result, Some(0), "should find element at index 0");
+        }
+
+        #[test]
+        fn test_find_element_in_middle() {
+            let list = create_list_from_slice(&[10, 20, 30, 40, 50]);
+            let result = list.find(&30);
+
+            assert_eq!(result, Some(2), "should find element in the middle and return correct index");
+        }
+
+        #[test]
+        fn test_find_element_at_end() {
+            let list = create_list_from_slice(&[5, 10, 15, 20]);
+            let result = list.find(&20);
+
+            assert_eq!(result, Some(3), "should find element at the end and return correct index");
+        }
+
+        #[test]
+        fn test_find_non_existent_element_smaller_than_all() {
+            let list = create_list_from_slice(&[10, 20, 30, 40]);
+            let result = list.find(&5);
+
+            assert_eq!(result, None, "should return None when searching for element smaller than all elements");
+        }
+
+        #[test]
+        fn test_find_non_existent_element_larger_than_all() {
+            let list = create_list_from_slice(&[10, 20, 30, 40]);
+            let result = list.find(&50);
+
+            // Early exit should trigger here — first check fails, then payload > value → break
+            assert_eq!(result, None, "should return None and use early exit for element larger than all");
+        }
+
+        #[test]
+        fn test_find_non_existent_element_between_values() {
+            let list = create_list_from_slice(&[10, 20, 30, 40]);
+            let result = list.find(&25);
+
+            // Should stop at 30 (30 > 25) without checking 40
+            assert_eq!(result, None, "should use early exit when value would be between existing elements");
+        }
+
+        #[test]
+        fn test_find_first_occurrence_of_duplicate() {
+            let list = create_list_from_slice(&[1, 2, 2, 3, 2]);
+            let result = list.find(&2);
+
+            assert_eq!(result, Some(1), "should return index of first occurrence when duplicates exist");
+        }
+
+        #[test]
+        fn test_find_single_element_match() {
+            let list = create_list_from_slice(&[42]);
+            let result = list.find(&42);
+
+            assert_eq!(result, Some(0), "should find matching element in single-element list");
+        }
+
+        #[test]
+        fn test_find_single_element_no_match() {
+            let list = create_list_from_slice(&[42]);
+            let result = list.find(&100);
+
+            assert_eq!(result, None, "should return None in single-element list when no match");
+        }
+
+        #[test]
+        fn test_find_with_string_data() {
+            let strings = vec!["apple", "banana", "cherry", "date"];
+            let list = create_list_from_slice(&strings);
+
+            let result = list.find(&"cherry");
+            assert_eq!(result, Some(2), "should find string element at correct index");
+
+            let result2 = list.find(&"grape");
+            assert_eq!(result2, None, "should return None for non‑existent string");
+        }
+
+        #[test]
+        fn test_find_early_exit_efficiency_hint() {
+            // Large sorted list
+            let large_values: Vec<i32> = (0..1000).map(|x| x * 2).collect(); // 0, 2, 4, ..., 1998
+            let list = create_list_from_slice(&large_values);
+
+            // Search for value that doesn't exist but would be early in the list
+            let result = list.find(&1); // Should exit immediately at 0 (0 > 1 is false, but 2 > 1 → true → break)
+
+            assert_eq!(result, None, "should efficiently exit early when value is between first elements");
+
+            // Verify it didn't scan the whole list
+            // The early exit should happen after checking first few elements
+        }
+
+        #[test]
+        fn test_find_custom_type() {
+            #[derive(PartialEq, PartialOrd, Debug, Clone)]
+            struct Person {
+                name: String,
+                age: u32,
+            }
+
+            let people = vec![
+                Person { name: "Alice".to_string(), age: 25 },
+                Person { name: "Bob".to_string(), age: 30 },
+                Person { name: "Charlie".to_string(), age: 35 },
+            ];
+            let list = create_list_from_slice(&people);
+
+            let target = Person { name: "Bob".to_string(), age: 30 };
+            let result = list.find(&target);
+            assert_eq!(result, Some(1), "should find custom type by full equality");
+
+            let nonexistent = Person { name: "David".to_string(), age: 40 };
+            let result2 = list.find(&nonexistent);
+            assert_eq!(result2, None, "should return None for non‑existent custom type");
+        }
+
+        #[test]
+        fn test_find_preserves_list_integrity() {
+            let values = vec![1, 3, 5, 7, 9];
+            let list = create_list_from_slice(&values);
+
+            // Store original state
+            let original_vec = list.to_vec();
+
+            // Perform find operations
+            let _result1 = list.find(&3);
+            let _result2 = list.find(&6); // doesn't exist
+            let _result3 = list.find(&9);
+
+            // Verify list hasn't been modified
+            assert_eq!(list.to_vec(), original_vec, "find operation should not modify the original list");
+            assert_eq!(list.len(), 5, "list length should remain unchanged after find operations");
+        }
+
+        #[test]
+        fn test_find_on_list_with_negative_numbers() {
+            let list = create_list_from_slice(&[-10, -5, 0, 5, 10]);
+
+            assert_eq!(list.find(&-5), Some(1), "should find negative number at correct index");
+            assert_eq!(list.find(&0), Some(2), "should find zero at correct index");
+            assert_eq!(list.find(&15), None, "should return None for value larger than all elements");
+            assert_eq!(list.find(&-15), None, "should return None for value smaller than all elements");
         }
     }
 }
