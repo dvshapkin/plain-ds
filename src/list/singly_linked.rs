@@ -261,15 +261,9 @@ mod tests {
     }
 
     #[test]
-    fn test_is_empty() {
-        let list: SinglyLinkedList<u8> = SinglyLinkedList::new();
-        assert!(list.is_empty(), "is_empty() returns `false` after creation");
-
-        let list: SinglyLinkedList<String> = SinglyLinkedList::new();
-        assert!(list.is_empty(), "is_empty() returns `false` after creation");
-
-        let list: SinglyLinkedList<&[char]> = SinglyLinkedList::new();
-        assert!(list.is_empty(), "is_empty() returns `false` after creation");
+    fn test_from_slice() {
+        let list = SinglyLinkedList::from_slice(&[2, 1, 5, 4, 3]);
+        assert_eq!(list.to_vec(), [2, 1, 5, 4, 3], "The order of elements must be preserved");
     }
 
     mod get {
