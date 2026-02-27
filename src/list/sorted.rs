@@ -62,7 +62,7 @@ impl<T> SortedList<T> {
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialOrd,
     {
