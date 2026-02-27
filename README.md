@@ -25,10 +25,10 @@ cargo add plain-ds
 
 ## What's new in last version?
 
-### [0.2.1]
+## [0.2.2] - 2026-02-27
 
 ### Fixed
-- README.md
+- fixes visibility of some methods
 
 ## Overview
 
