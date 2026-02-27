@@ -195,6 +195,18 @@ impl<'a, T: 'a> ListCommon<T> {
         self.size -= 1;
         Ok(removed.payload)
     }
+
+    /// Finds the first node whose payload satisfies the predicate and returns its index.
+    /// Returns `None` if there is no such node.
+    ///
+    /// Efficiency: O(n)
+    #[inline]
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        self.iter().position(|item| predicate(item))
+    }
 }
 
 impl<T> Drop for ListCommon<T> {
@@ -847,6 +859,175 @@ mod tests {
 
             assert_eq!(result.len(), 3, "vector of custom types should have correct length");
             assert_eq!(result, points, "custom cloneable types should be properly cloned and preserved");
+        }
+    }
+
+    #[cfg(test)]
+    mod find_if {
+        use super::*;
+
+        /// Helper function to create a list from a slice of values
+        fn create_list_from_slice<T: Clone>(values: &[T]) -> ListCommon<T> {
+            let mut list = ListCommon::new();
+            for value in values {
+                list.push_back(value.clone());
+            }
+            list
+        }
+
+        #[test]
+        fn test_find_if_empty_list() {
+            let list: ListCommon<i32> = ListCommon::new();
+            let result = list.find_if(|x| *x == 5);
+
+            assert_eq!(result, None, "should return None for empty list regardless of predicate");
+        }
+
+        #[test]
+        fn test_find_if_element_at_beginning() {
+            let list = create_list_from_slice(&[1, 2, 3, 4, 5]);
+
+            let result = list.find_if(|x| *x == 1);
+
+            assert_eq!(result, Some(0), "should find element at index 0 if it satisfies the predicate");
+        }
+
+        #[test]
+        fn test_find_if_element_in_middle() {
+            let list = create_list_from_slice(&[10, 20, 30, 40, 50]);
+
+            let result = list.find_if(|x| *x == 30);
+
+            assert_eq!(result, Some(2), "should find element in the middle and return correct index");
+        }
+
+        #[test]
+        fn test_find_if_element_at_end() {
+            let list = create_list_from_slice(&[5, 10, 15, 20]);
+
+            let result = list.find_if(|x| *x == 20);
+
+            assert_eq!(result, Some(3), "should find element at the end and return correct index");
+        }
+
+        #[test]
+        fn test_find_if_no_matching_element() {
+            let list = create_list_from_slice(&[1, 2, 3, 4]);
+
+            let result = list.find_if(|x| *x == 99);
+
+            assert_eq!(result, None, "should return None when no element satisfies the predicate");
+        }
+
+        #[test]
+        fn test_find_if_first_occurrence_of_duplicate() {
+            let list = create_list_from_slice(&[1, 2, 2, 3, 2]);
+
+            let result = list.find_if(|x| *x == 2);
+
+            assert_eq!(result, Some(1), "should return index of first occurrence when duplicates exist");
+        }
+
+        #[test]
+        fn test_find_if_with_complex_predicate() {
+            let list = create_list_from_slice(&[1, 3, 5, 7, 9, 11]);
+
+            // Find first even number
+            let result = list.find_if(|x| *x % 2 == 0);
+
+            assert_eq!(result, None, "should return None as there are no even numbers");
+
+            let list2 = create_list_from_slice(&[1, 2, 3, 4, 5]);
+            let result2 = list2.find_if(|x| *x % 2 == 0);
+            assert_eq!(result2, Some(1), "should find first even number at index 1");
+        }
+
+        #[test]
+        fn test_find_if_with_range_predicate() {
+            let list = create_list_from_slice(&[10, 25, 35, 50, 60]);
+
+            // Find first number greater than 30
+            let result = list.find_if(|x| *x > 30);
+
+            assert_eq!(result, Some(2), "should find first element greater than 30 at index 2 (value 35)");
+        }
+
+        #[test]
+        fn test_find_if_with_string_data() {
+            let strings = vec!["apple", "banana", "cherry", "date"];
+            let list = create_list_from_slice(&strings);
+
+            let result = list.find_if(|s| s.starts_with("ch"));
+
+            assert_eq!(result, Some(2), "should find string starting with 'ch' at index 2");
+
+            let result2 = list.find_if(|s| s.len() == 5);
+            assert_eq!(result2, Some(0), "should find first string with length 5 at index 0 ('apple')");
+        }
+
+        #[test]
+        fn test_find_if_single_element_match() {
+            let list = create_list_from_slice(&[42]);
+
+            let result = list.find_if(|x| *x == 42);
+
+            assert_eq!(result, Some(0), "should find matching element in single-element list");
+        }
+
+        #[test]
+        fn test_find_if_single_element_no_match() {
+            let list = create_list_from_slice(&[42]);
+
+            let result = list.find_if(|x| *x == 100);
+
+            assert_eq!(result, None, "should return None in single-element list when predicate doesn't match");
+        }
+
+        #[test]
+        fn test_find_if_large_list_performance_hint() {
+            // Create a large list and verify it finds early without scanning all elements
+            let mut large_values = Vec::with_capacity(1000);
+            for i in 0..1000 {
+                large_values.push(i * 2); // Even numbers: 0, 2, 4, ..., 1998
+            }
+            let list = create_list_from_slice(&large_values);
+
+            // This should be found quickly at index 5 (value = 10)
+            let result = list.find_if(|x| *x == 10);
+
+            assert_eq!(result, Some(5), "should efficiently find element early in large list without scanning all");
+        }
+
+        #[test]
+        fn test_find_if_custom_type() {
+            #[derive(PartialEq, Debug, Clone)]
+            struct Person {
+                name: String,
+                age: u32,
+            }
+
+            let people = vec![
+                Person { name: "Alice".to_string(), age: 25 },
+                Person { name: "Bob".to_string(), age: 30 },
+                Person { name: "Charlie".to_string(), age: 35 },
+            ];
+            let list = create_list_from_slice(&people);
+
+            let result = list.find_if(|p| p.age == 30);
+            assert_eq!(result, Some(1), "should find custom type by age field");
+
+            let result2 = list.find_if(|p| p.name == "Alice");
+            assert_eq!(result2, Some(0), "should find custom type by name field");
+        }
+
+        #[test]
+        fn test_find_if_predicate_with_closure_capture() {
+            let threshold = 25;
+            let list = create_list_from_slice(&[10, 20, 30, 40]);
+
+            let result = list.find_if(|x| *x > threshold);
+
+            assert_eq!(result, Some(2), "should work with closures that capture variables from environment");
         }
     }
 }

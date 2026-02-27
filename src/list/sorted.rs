@@ -58,6 +58,17 @@ impl<T> SortedList<T> {
         self.state.to_vec()
     }
 
+    /// Finds the first node whose payload satisfies the predicate and returns its index.
+    /// Returns `None` if there is no such node.
+    ///
+    /// Efficiency: O(n)
+    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
+    where
+        T: PartialOrd,
+    {
+        self.state.find_if(predicate)
+    }
+
     // Helper for insertion into the middle (used in push())
     fn insert_in_middle(&mut self, ptr: *mut Node<T>)
     where
@@ -172,15 +183,24 @@ where
         self.state.remove(index)
     }
 
-    /// Finds the first node whose payload satisfies the predicate and returns its index.
+    /// Finds the first node whose payload is equal to the given `value` and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
-    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
-        self.iter().enumerate().find_map(|(index, item)| {
-            println!("{}", index);
-            predicate(item).then(|| index)
-        })
+    /// Efficiency: O(n) at worst
+    fn find(&self, value: &T) -> Option<usize>
+    where T: PartialEq<T>
+    {
+        for (index, payload) in self.iter().enumerate() {
+            if payload == value {
+                return Some(index);
+            }
+            // Early exit: If the data is sorted and the current value
+            // is already greater than the possible match
+            if payload > value {
+                break; // definitely won't find anything further
+            }
+        }
+        None
     }
 }
 
@@ -352,6 +372,16 @@ mod tests {
             assert_eq!(values[0].x, 1, "should be sorted by x coordinate");
             assert_eq!(values[1].x, 2, "should be sorted by x coordinate");
             assert_eq!(values[2].x, 3, "should be sorted by x coordinate");
+        }
+    }
+
+    mod find_if {
+        use super::*;
+
+        #[test]
+        fn test_find_if() {
+            let list = SortedList::from_slice(&[10, 20, 30, 40, 50]);
+            list.find_if(|x| *x == 35);
         }
     }
 }

@@ -28,7 +28,10 @@ cargo add plain-ds
 ### [0.2.0]
 
 ### Added
-- `OrderedList` fast implementation
+- `SortedList` implementation
+
+### Fixed
+- known bugs
 
 ## Overview
 
@@ -43,13 +46,9 @@ and efficiency of existing DS.
 - **Quality and hi-coverage of testing**: Completeness and thoughtfulness of tests.
 - **Clarity**: Detailed error messages and up-to-date documentation.
 
-## Light vs Fast implementation
-
-All DS are placed in two modules: `light` and `fast`.
-The **light** implementation has the primary goal of minimizing memory consumption, possibly at the expense 
-of some performance tradeoffs.
-On the contrary, the main goal of a **fast** implementation is to provide good performance (possibly at the expense 
-of increased memory consumption).
+## What has already been implemented?
+- `SinglyLinkedList` - singly-linked list implementation
+- `SortedList` - sorted list implementation
 
 ## Contributing
 

@@ -69,13 +69,16 @@ pub trait List<'a, T: 'a> {
         }
     }
 
-    /// Finds the first node whose payload satisfies the predicate and returns its index.
+    /// Finds the first node whose payload is equal to the given `value` and returns its index.
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
+    fn find(&self, value: &T) -> Option<usize>
+    where T: PartialEq<T>
+    {
         self.iter()
             .enumerate()
-            .find_map(|(index, item)| predicate(item).then(|| index))
+            .find(|(_, item)| *item == value)
+            .map(|(index, _)| index)
     }
 }

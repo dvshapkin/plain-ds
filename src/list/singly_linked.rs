@@ -118,15 +118,15 @@ impl<T> SinglyLinkedList<T> {
         Ok(())
     }
 
-    /// Finds the first node whose payload is equal to the given one and returns its index.
+    /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    fn find(&self, value: &T) -> Option<usize>
+    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialEq,
     {
-        self.find_if(|item| item == value)
+        self.state.find_if(predicate)
     }
 
     /// Sorts the list in ascending order using merge sort algorithm.
