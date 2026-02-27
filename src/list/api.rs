@@ -76,7 +76,6 @@ pub trait List<'a, T: 'a> {
     fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
         self.iter()
             .enumerate()
-            .find(|(_, item)| predicate(*item))
-            .map(|(index, _)| index)
+            .find_map(|(index, item)| predicate(item).then(|| index))
     }
 }

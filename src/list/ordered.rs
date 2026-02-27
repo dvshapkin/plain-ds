@@ -159,8 +159,10 @@ where
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(???)
+    /// Efficiency: O(n)
     fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize> {
-        todo!()
+        self.iter()
+            .enumerate()
+            .find_map(|(index, item)| predicate(item).then(|| index))
     }
 }
