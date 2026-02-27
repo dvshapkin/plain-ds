@@ -2,4 +2,4 @@ mod core;
 pub mod list;
 
 pub use core::{DSError, Result};
-pub use list::{List, OrderedList, SingleLinkedList};
+pub use list::{List, SingleLinkedList, SortedList};

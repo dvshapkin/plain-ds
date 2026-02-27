@@ -706,4 +706,147 @@ mod tests {
             assert_eq!(first_10, (0..10).collect::<Vec<_>>());
         }
     }
+
+    #[cfg(test)]
+    mod to_vec {
+        use super::*;
+
+        /// Helper function to create a list from a slice of values
+        fn create_list_from_slice<T: Clone>(values: &[T]) -> ListCommon<T> {
+            let mut list = ListCommon::new();
+            for value in values {
+                list.push_back(value.clone());
+            }
+            list
+        }
+
+        #[test]
+        fn test_to_vec_empty_list() {
+            let list: ListCommon<i32> = ListCommon::new();
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), 0, "vector from empty list should be empty");
+            assert!(result.is_empty(), "result vector should be empty for empty list");
+        }
+
+        #[test]
+        fn test_to_vec_single_element() {
+            let mut list = ListCommon::new();
+            list.push_back(42);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), 1, "vector should have one element");
+            assert_eq!(result, vec![42], "vector should contain the single element from list");
+        }
+
+        #[test]
+        fn test_to_vec_multiple_elements() {
+            let values = vec![1, 2, 3, 4, 5];
+            let list = create_list_from_slice(&values);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), 5, "vector should have 5 elements");
+            assert_eq!(result, values, "vector should match original values in order");
+        }
+
+        #[test]
+        fn test_to_vec_preserves_order() {
+            let values = vec!["apple", "banana", "cherry", "date"];
+            let list = create_list_from_slice(&values);
+
+            let result = list.to_vec();
+
+            assert_eq!(result, values, "vector should preserve the order of elements from the list");
+        }
+
+        #[test]
+        fn test_to_vec_with_duplicates() {
+            let values = vec![5, 2, 8, 2, 9, 5];
+            let list = create_list_from_slice(&values);
+
+            let result = list.to_vec();
+
+            assert_eq!(result, values, "vector should include all duplicates in correct positions");
+        }
+
+        #[test]
+        fn test_to_vec_capacity_matches_length() {
+            let values = vec![10, 20, 30];
+            let list = create_list_from_slice(&values);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.capacity(), 3, "vector capacity should match list length due to pre‑allocation");
+            assert_eq!(result.len(), 3, "vector length should be 3");
+        }
+
+        #[test]
+        fn test_to_vec_string_data() {
+            let strings = vec![
+                "hello".to_string(),
+                "world".to_string(),
+                "rust".to_string()
+            ];
+            let list = create_list_from_slice(&strings);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), 3, "vector of strings should have correct length");
+            assert_eq!(result, strings, "string vector should match original strings");
+        }
+
+        #[test]
+        fn test_to_vec_large_list() {
+            const SIZE: usize = 1000;
+            let values: Vec<usize> = (0..SIZE).collect();
+            let list = create_list_from_slice(&values);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), SIZE, "large list should produce vector of correct size");
+            for i in 0..SIZE {
+                assert_eq!(result[i], i, "element at index {} should be correct", i);
+            }
+        }
+
+        #[test]
+        fn test_to_vec_does_not_modify_original_list() {
+            let mut list = ListCommon::new();
+            list.push_back(10);
+            list.push_back(20);
+            list.push_back(30);
+
+            let original_len = list.len();
+
+            let _result = list.to_vec();
+
+            assert_eq!(list.len(), original_len, "to_vec() should not modify the original list");
+            assert_eq!(list.head(), Some(&10), "head element should remain unchanged");
+            assert_eq!(list.last(), Some(&30), "last element should remain unchanged");
+        }
+
+        #[test]
+        fn test_to_vec_with_custom_cloneable_type() {
+            #[derive(Clone, PartialEq, Debug)]
+            struct Point {
+                x: i32,
+                y: i32,
+            }
+
+            let points = vec![
+                Point { x: 1, y: 2 },
+                Point { x: 3, y: 4 },
+                Point { x: 5, y: 6 }
+            ];
+            let list = create_list_from_slice(&points);
+
+            let result = list.to_vec();
+
+            assert_eq!(result.len(), 3, "vector of custom types should have correct length");
+            assert_eq!(result, points, "custom cloneable types should be properly cloned and preserved");
+        }
+    }
 }

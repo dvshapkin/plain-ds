@@ -1,8 +1,8 @@
 mod common;
 mod api;
-mod ordered;
+mod sorted;
 mod singly_linked;
 
 pub use api::List;
-pub use ordered::OrderedList;
+pub use sorted::SortedList;
 pub use singly_linked::SingleLinkedList;
