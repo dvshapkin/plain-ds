@@ -67,7 +67,7 @@ impl<T> SinglyLinkedList<T> {
     /// Adds a new node to the front of the list.
     ///
     /// Efficiency: O(1)
-    fn push_front(&mut self, payload: T) {
+    pub fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
             self.state.last = ptr;
@@ -82,7 +82,7 @@ impl<T> SinglyLinkedList<T> {
     /// Error returns, if the index out of bounds.
     ///
     /// Efficiency: O(n)
-    fn insert(&mut self, index: usize, payload: T) -> Result<()> {
+    pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.state.size {
             return Err(DSError::IndexOutOfBounds {
                 index,
@@ -122,7 +122,7 @@ impl<T> SinglyLinkedList<T> {
     /// Returns `None` if there is no such node.
     ///
     /// Efficiency: O(n)
-    fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
+    pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialEq,
     {
@@ -134,7 +134,7 @@ impl<T> SinglyLinkedList<T> {
     /// Efficiency: O(n log n)
     ///
     /// Space complexity: O(log n) due to recursion stack
-    fn sort(&mut self)
+    pub fn sort(&mut self)
     where
         T: PartialOrd + Default,
     {
