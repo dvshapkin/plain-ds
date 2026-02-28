@@ -1,11 +1,11 @@
 //! This module contains file-tree implementation.
 
-use super::node::{Childs, ComponentType, Node};
+use super::node::{Childs, DirNode};
 use crate::{DSError, Result};
 use std::path::{Component, Path};
 
-/// `FileTree` is a data structure for compactly storing in memory hierarchical objects
-/// such as files and directories. It also provides fast search and access to data.
+/// `FileTree` is a specialized data structure for compactly storing in memory hierarchical
+/// structure of files and directories. It also provides fast search and access to data.
 ///
 /// **Implementation Features** <br>
 /// If all the file paths you plan to store in `FileTree` begin with the same long prefix,
@@ -15,35 +15,36 @@ use std::path::{Component, Path};
 ///```plain text
 /// /very/long/prefix/to/my/files/file.01
 ///
-/// /very/long/prefix/to/my/files/a/file.02
+/// /very/long/prefix/to/my/files/alfa/file.02
 ///
-/// /very/long/prefix/to/my/files/b/c/file.03
+/// /very/long/prefix/to/my/files/beta/gamma/file.03
 ///```
 ///
 /// Common prefix is: `/very/long/prefix/to/my/files` - store it separately.
 ///
-/// And in `FileTree` store short paths: `/file.01`, `/a/file.02` and `/b/c/file.03`.
+/// And in `FileTree` store short paths: `/file.01`, `/alfa/file.02` and `/beta/gamma/file.03`.
 ///
 /// In this case, `FileTree` will store the following hierarchy:
 ///```plain text
-///                    /
-///        +-----------+------------+
-///     file.01        a            b
-///                    +            +
-///                 file.02         c
-///                                 +
-///                              file.03
+///                      /
+///        +-------------+--------------+
+///     file.01         alfa           beta
+///                      /              /
+///                   file.02         gamma
+///                                     /
+///                                  file.03
 ///```
 /// All paths in `FileTree` must be absolute (i.e., start with `/`). <br>
 /// Do not include any prefixes into paths (for example, like in Windows - `C:`).
 pub struct FileTree {
-    root: Node,
+    root: DirNode,
 }
 
 impl FileTree {
+    /// Creates new file-tree and initialize root as `/`.
     pub fn new() -> Self {
         Self {
-            root: Node::new("/", ComponentType::Dir),
+            root: DirNode::new("/"),
         }
     }
 
@@ -148,8 +149,7 @@ impl FileTree {
             .childs
             .get_or_insert_with(|| Box::new(Childs::new()));
 
-        let node = Node::new(&name, ComponentType::File);
-        childs.files.insert(name, node);
+        childs.files.insert(name);
 
         Ok(())
     }
@@ -178,7 +178,7 @@ impl FileTree {
         if let Some(file_component) = file_component && is_found {
             let name = file_component.as_os_str().to_string_lossy().to_string();
             if let Some(childs) = &current.childs {
-                if !childs.files.contains_key(&name) {
+                if !childs.files.contains(&name) {
                     is_found = false;
                 }
             } else {
@@ -189,7 +189,7 @@ impl FileTree {
         is_found
     }
 
-    fn ensure_dirs(&mut self, components: &[Component<'_>]) -> &mut Node {
+    fn ensure_dirs(&mut self, components: &[Component<'_>]) -> &mut DirNode {
         let mut current = &mut self.root;
 
         for component in components {
@@ -201,7 +201,7 @@ impl FileTree {
             current = childs
                 .dirs
                 .entry(name.clone())
-                .or_insert_with(|| Node::new(&name, ComponentType::Dir));
+                .or_insert_with(|| DirNode::new(&name));
         }
 
         current
@@ -269,7 +269,7 @@ mod tests {
             // Verify file exists in the correct location
             let home = tree.root.childs.as_ref().unwrap().dirs.get("home").unwrap();
             let user = home.childs.as_ref().unwrap().dirs.get("user").unwrap();
-            assert!(user.childs.as_ref().unwrap().files.contains_key("document.txt"));
+            assert!(user.childs.as_ref().unwrap().files.contains("document.txt"));
         }
 
         /// Test adding file creates necessary intermediate directories.
@@ -283,7 +283,7 @@ mod tests {
             // Verify full path was created
             let projects = tree.root.childs.as_ref().unwrap().dirs.get("projects").unwrap();
             let rust = projects.childs.as_ref().unwrap().dirs.get("rust").unwrap();
-            assert!(rust.childs.as_ref().unwrap().files.contains_key("main.rs"));
+            assert!(rust.childs.as_ref().unwrap().files.contains("main.rs"));
         }
 
         /// Test error when adding non‑absolute path for directory.
@@ -329,9 +329,9 @@ mod tests {
             // Verify all files exist
             let tmp = tree.root.childs.as_ref().unwrap().dirs.get("tmp").unwrap();
             let files = &tmp.childs.as_ref().unwrap().files;
-            assert!(files.contains_key("file1.txt"));
-            assert!(files.contains_key("file2.txt"));
-            assert!(files.contains_key("script.sh"));
+            assert!(files.contains("file1.txt"));
+            assert!(files.contains("file2.txt"));
+            assert!(files.contains("script.sh"));
         }
 
         /// Test idempotent behavior — adding the same path multiple times.
@@ -351,7 +351,7 @@ mod tests {
             // Verify structure is correct
             let var = tree.root.childs.as_ref().unwrap().dirs.get("var").unwrap();
             let log = var.childs.as_ref().unwrap().dirs.get("log").unwrap();
-            assert!(log.childs.as_ref().unwrap().files.contains_key("system.log"));
+            assert!(log.childs.as_ref().unwrap().files.contains("system.log"));
         }
 
         /// Test handling of paths with special characters.
