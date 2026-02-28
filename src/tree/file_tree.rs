@@ -49,6 +49,8 @@ impl FileTree {
     }
 
     /// Checks if `path` is contained in the tree as file.
+    ///
+    /// **Efficiency**: O(n), where `n` is a path length (in components).
     pub fn contains_file<P: AsRef<Path>>(&self, path: P) -> Result<bool> {
         let path = path.as_ref();
         if path.as_os_str() == "" {
@@ -71,6 +73,8 @@ impl FileTree {
     }
 
     /// Checks if `path` is contained in the tree as directory.
+    ///
+    /// **Efficiency**: O(n), where `n` is a path length (in components).
     pub fn contains_dir<P: AsRef<Path>>(&self, path: P) -> Result<bool> {
         let path = path.as_ref();
         if path.as_os_str() == "" {
@@ -95,6 +99,8 @@ impl FileTree {
     ///
     /// `path` must be absolute (i.e., start with `/`) and not contain prefixes
     /// (for example, like in Windows - `C:`).
+    ///
+    /// **Efficiency**: O(n), where `n` is a path length (in components).
     pub fn add_dir<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         if path.as_os_str() == "" {
@@ -122,6 +128,8 @@ impl FileTree {
     ///
     /// `path` must be absolute (i.e., start with `/`) and not contain prefixes
     /// (for example, like in Windows - `C:`).
+    ///
+    /// **Efficiency**: O(n), where `n` is a path length (in components).
     pub fn add_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         if path.as_os_str() == "" {
@@ -152,6 +160,13 @@ impl FileTree {
         childs.files.insert(name);
 
         Ok(())
+    }
+
+    /// Clears all tree contents.
+    ///
+    /// **Efficiency**: O(1)
+    pub fn clear(&mut self) {
+        if let Some(_) = self.root.childs.take() {}
     }
 
     fn check_path(&self, components: &[Component<'_>], file_component: Option<Component<'_>>) -> bool {

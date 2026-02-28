@@ -1,5 +1,5 @@
 use crate::core::DSError;
-use super::{Iter, IterMut, Node};
+use super::node_one_link::{Iter, IterMut, Node};
 use std::ptr;
 
 /// `ListCommon` is a core of all lists implementation.
@@ -22,7 +22,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Collect list values into a vector.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     #[inline]
     pub fn to_vec(&self) -> Vec<T>
     where
@@ -35,7 +35,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Returns list size.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     #[inline]
     pub fn len(&self) -> usize {
         self.size
@@ -43,7 +43,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Returns the payload value of the first node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     #[inline]
     pub fn head(&self) -> Option<&T> {
         if self.head.is_null() {
@@ -55,7 +55,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Returns the payload value of the last node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     #[inline]
     pub fn last(&self) -> Option<&T> {
         if self.last.is_null() {
@@ -85,7 +85,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Adds a new node to the end of the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     #[inline]
     pub fn push_back(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
@@ -100,7 +100,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Removes a node from the end of the list and returns its payload value.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     #[inline]
     pub fn pop_back(&mut self) -> Option<T> {
         if self.len() == 0 {
@@ -141,7 +141,7 @@ impl<'a, T: 'a> ListCommon<T> {
 
     /// Removes a node from the front of the list and returns its payload value.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
         if self.len() == 0 {
@@ -161,7 +161,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     #[inline]
     pub fn remove(&mut self, index: usize) -> crate::Result<T> {
         if index >= self.size {
@@ -199,7 +199,7 @@ impl<'a, T: 'a> ListCommon<T> {
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     #[inline]
     pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where

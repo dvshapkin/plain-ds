@@ -7,7 +7,7 @@ pub trait List<'a, T: 'a> {
 
     /// Checks if the list is empty.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -20,7 +20,7 @@ pub trait List<'a, T: 'a> {
 
     /// Returns a list item by index, or error if index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn get(&self, index: usize) -> Result<&'a T> {
         self.iter().nth(index).ok_or(DSError::IndexOutOfBounds {
             index,
@@ -30,7 +30,7 @@ pub trait List<'a, T: 'a> {
 
     /// Returns a mutable list item by index, or error if index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn get_mut(&mut self, index: usize) -> Result<&'a mut T> {
         let list_size = self.len();
         self.iter_mut().nth(index).ok_or(DSError::IndexOutOfBounds {
@@ -62,7 +62,7 @@ pub trait List<'a, T: 'a> {
 
     /// Removes all items from the list.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn clear(&mut self) {
         while self.len() != 0 {
             let _ = self.pop_front();
@@ -72,7 +72,7 @@ pub trait List<'a, T: 'a> {
     /// Finds the first node whose payload is equal to the given `value` and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn find(&self, value: &T) -> Option<usize>
     where T: PartialEq<T>
     {

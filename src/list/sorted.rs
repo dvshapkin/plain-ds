@@ -36,7 +36,7 @@ impl<T> SortedList<T> {
 
     /// Creates list from slice.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn from_slice(slice: &[T]) -> Self
     where
         T: Clone + PartialOrd,
@@ -50,7 +50,7 @@ impl<T> SortedList<T> {
 
     /// Collect list values into a vector.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn to_vec(&self) -> Vec<T>
     where
         T: Clone,
@@ -61,7 +61,7 @@ impl<T> SortedList<T> {
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialOrd,
@@ -97,21 +97,21 @@ where
 {
     /// Returns list size.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn len(&self) -> usize {
         self.state.len()
     }
 
     /// Returns the payload value of the first node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn head(&self) -> Option<&T> {
         self.state.head()
     }
 
     /// Returns the payload value of the last node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn last(&self) -> Option<&T> {
         self.state.last()
     }
@@ -133,7 +133,7 @@ where
 
     /// Adds a new node to the list according to the sort order.
     ///
-    /// Efficiency: O(n) at worst
+    /// **Efficiency**: O(n) at worst
     fn push(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
 
@@ -163,14 +163,14 @@ where
 
     /// Removes a node from the end of the list and returns its payload value.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn pop_back(&mut self) -> Option<T> {
         self.state.pop_back()
     }
 
     /// Removes a node from the front of the list and returns its payload value.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn pop_front(&mut self) -> Option<T> {
         self.state.pop_front()
     }
@@ -178,7 +178,7 @@ where
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn remove(&mut self, index: usize) -> crate::Result<T> {
         self.state.remove(index)
     }
@@ -186,7 +186,7 @@ where
     /// Finds the first node whose payload is equal to the given `value` and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n) at worst
+    /// **Efficiency**: O(n) at worst
     fn find(&self, value: &T) -> Option<usize>
     where
         T: PartialEq<T>,
