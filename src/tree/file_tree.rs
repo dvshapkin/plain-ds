@@ -1,7 +1,34 @@
-use std::path::{Component, Path};
+//! This module contains file-tree implementation.
 
 use super::node::{Childs, ComponentType, Node};
+use crate::{DSError, Result};
+use std::path::{Component, Path};
 
+/// `FileTree` is a data structure for compactly storing in memory hierarchical objects
+/// such as files and directories. It also provides fast search and access to data.
+///
+/// If all the file paths you plan to store in `FileTree` begin with the same long prefix,
+/// it's better to store this prefix separately, outside of this structure.
+///
+/// For example, you have several file paths:
+///
+/// first: `/very/long/prefix/to/my/files/file.01`
+/// second: `/very/long/prefix/to/my/files/a/file.02`
+/// third: `/very/long/prefix/to/my/files/b/c/file.03`
+///
+/// common prefix is: `/very/long/prefix/to/my/files` - store it separately,
+/// and in `FileTree` store short paths: `/file.01`, `/a/file.02` and `/b/c/file.03`
+/// In this case, `FileTree` will store the following hierarchy:
+///                           `/`
+///                +-----------+------------+
+///            `file.01`      `a`          `b`
+///                            +            +
+///                        `file.02`       `c`
+///                                         +
+///                                     `file.03`
+///
+/// All paths in `FileTree` must be absolute (i.e., start with `/`).
+/// Do not include any prefixes into paths (for example, like in Windows - `C:`).
 pub struct FileTree {
     root: Node,
 }
@@ -13,9 +40,15 @@ impl FileTree {
         }
     }
 
-    pub fn add_file(&mut self, path: &Path) -> Result<(), &'static str> {
+    /// Add directory into tree.
+    ///
+    /// `path` must be absolute (i.e., start with `/`) and not contain prefixes
+    /// (for example, like in Windows - `C:`).
+    pub fn add_dir(&mut self, path: &Path) -> Result<()> {
         if !path.is_absolute() {
-            return Err("Path must be absolute");
+            return Err(DSError::NotAbsolutePath {
+                path: path.as_os_str().to_owned(),
+            });
         }
         if path.as_os_str() == "/" {
             return Ok(());
@@ -23,11 +56,29 @@ impl FileTree {
 
         let components: Vec<_> = path.components().collect();
 
-        // Первый проход: создаём все необходимые директории
-        let last_node = self.ensure_dirs(&components)?;
+        // Create all necessary directories
+        let _ = self.ensure_dirs(&components);
 
-        // Второй проход: добавляем файл в последнюю директорию
-        let last_component = components.last().ok_or("Empty path")?;
+        Ok(())
+    }
+
+    pub fn add_file(&mut self, path: &Path) -> Result<()> {
+        if !path.is_absolute() {
+            return Err(DSError::NotAbsolutePath {
+                path: path.as_os_str().to_owned(),
+            });
+        }
+        if path.as_os_str() == "/" {
+            return Ok(());
+        }
+
+        let components: Vec<_> = path.components().collect();
+
+        // First pass: create all necessary directories
+        let last_node = self.ensure_dirs(&components);
+
+        // Second pass: add the file to the last directory
+        let last_component = components.last().ok_or(DSError::EmptyPath)?;
         let name = last_component.as_os_str();
         let childs = last_node
             .childs
@@ -39,10 +90,10 @@ impl FileTree {
         Ok(())
     }
 
-    fn ensure_dirs(&mut self, components: &[Component<'_>]) -> Result<&mut Node, &'static str> {
+    fn ensure_dirs(&mut self, components: &[Component<'_>]) -> &mut Node {
         let mut current = &mut self.root;
 
-        // Пропускаем RootDir и последний компонент (файл)
+        // Skip RootDir and the last component (file)
         for component in components.iter().skip(1).take(components.len() - 2) {
             let name = component.as_os_str();
 
@@ -55,6 +106,6 @@ impl FileTree {
                 .or_insert_with(|| Node::new(name.to_string_lossy().as_ref(), ComponentType::Dir));
         }
 
-        Ok(current)
+        current
     }
 }
