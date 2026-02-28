@@ -1,53 +1,42 @@
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
-
-#[derive(Debug, PartialEq)]
-pub enum ComponentType {
-    Dir,
-    File,
-}
+use std::collections::{BTreeMap, BTreeSet};
 
 pub struct Childs {
-    pub dirs: Box<BTreeMap<String, Node>>,
-    pub files: Box<BTreeMap<String, Node>>,
+    pub dirs: Box<BTreeMap<String, DirNode>>,
+    pub files: Box<BTreeSet<String>>,
 }
 
 impl Childs {
     pub fn new() -> Self {
         Self {
             dirs: Box::new(BTreeMap::new()),
-            files: Box::new(BTreeMap::new())
+            files: Box::new(BTreeSet::new())
         }
     }
 }
 
-pub struct Node {
+pub struct DirNode {
     pub name: String,
-    pub r#type: ComponentType,
     pub childs: Option<Box<Childs>>,
 }
 
-impl Node {
-    pub fn new(name: &str, r#type: ComponentType) -> Self {
+impl DirNode {
+    pub fn new(name: &str) -> Self {
         Self {
             name: String::from(name),
-            r#type,
             childs: None,
         }
     }
 }
 
-impl PartialEq for Node {
+impl PartialEq for DirNode {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.r#type == other.r#type
+        self.name == other.name
     }
 }
 
-impl PartialOrd for Node {
+impl PartialOrd for DirNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.r#type != other.r#type {
-            return None;
-        }
         self.name.partial_cmp(&other.name)
     }
 }
@@ -58,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_node() {
-        println!("Node = {}", size_of::<Node>());
+        println!("DirNode = {}", size_of::<DirNode>());
         println!("Childs = {}", size_of::<Childs>());
     }
 }
