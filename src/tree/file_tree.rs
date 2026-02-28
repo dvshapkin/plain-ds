@@ -555,4 +555,96 @@ mod tests {
             assert_eq!(tree.contains_dir("/conflicted"), Ok(true));
         }
     }
+
+    mod clear {
+        use super::*;
+
+        /// Test that clear() removes all child nodes from the root.
+        #[test]
+        fn test_clear_removes_all_children() {
+            let mut tree = FileTree::new();
+
+            // Add some directories and files
+            tree.add_dir(Path::new("/home/user")).unwrap();
+            tree.add_file(Path::new("/etc/config")).unwrap();
+
+            // Verify that tree has children before clearing
+            assert!(tree.root.childs.is_some());
+
+            // Clear the tree
+            tree.clear();
+
+            // Verify that all children are removed
+            assert!(tree.root.childs.is_none());
+        }
+
+        /// Test that root node itself is preserved after clear().
+        #[test]
+        fn test_clear_preserves_root_node() {
+            let mut tree = FileTree::new();
+
+            tree.add_dir(Path::new("/tmp")).unwrap();
+
+            // Store root properties before clearing
+            let root_name_before = tree.root.name.clone();
+
+            tree.clear();
+
+            // Verify root node is still there with original properties
+            assert_eq!(tree.root.name, root_name_before);
+            assert!(tree.root.childs.is_none()); // But children are cleared
+        }
+
+        /// Test clear() on empty tree — should be a no‑op.
+        #[test]
+        fn test_clear_on_empty_tree() {
+            let mut tree = FileTree::new();
+
+            // Tree is initially empty (no children)
+            assert!(tree.root.childs.is_none());
+
+            // Clear should not change anything
+            tree.clear();
+
+            assert!(tree.root.childs.is_none());
+        }
+
+        /// Test clearing tree with complex nested structure.
+        #[test]
+        fn test_clear_complex_structure() {
+            let mut tree = FileTree::new();
+
+            // Build a complex tree
+            tree.add_dir(Path::new("/var/log")).unwrap();
+            tree.add_dir(Path::new("/home/user/projects")).unwrap();
+            tree.add_file(Path::new("/etc/passwd")).unwrap();
+            tree.add_file(Path::new("/home/user/notes.txt")).unwrap();
+
+            // Verify tree has content before clearing
+            assert!(tree.contains_dir("/var/log").unwrap());
+            assert!(tree.contains_dir("/home/user/projects").unwrap());
+            assert!(tree.contains_file("/etc/passwd").unwrap());
+
+            // Clear the tree
+            tree.clear();
+
+            // Verify all content is gone
+            assert!(!tree.contains_dir("/var/log").unwrap_or(false));
+            assert!(!tree.contains_dir("/home/user/projects").unwrap_or(false));
+            assert!(!tree.contains_file("/etc/passwd").unwrap_or(false));
+            assert!(tree.root.childs.is_none());
+        }
+
+        /// Test calling clear() multiple times — should remain empty.
+        #[test]
+        fn test_multiple_clear_calls() {
+            let mut tree = FileTree::new();
+
+            tree.add_dir(Path::new("/test")).unwrap();
+            tree.clear(); // First clear
+            tree.clear(); // Second clear
+
+            assert!(tree.root.childs.is_none());
+        }
+    }
 }

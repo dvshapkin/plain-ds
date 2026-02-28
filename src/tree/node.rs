@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Debug)]
 pub struct Childs {
     pub dirs: Box<BTreeMap<String, DirNode>>,
     pub files: Box<BTreeSet<String>>,
@@ -15,6 +16,7 @@ impl Childs {
     }
 }
 
+#[derive(Debug)]
 pub struct DirNode {
     pub name: String,
     pub childs: Option<Box<Childs>>,
