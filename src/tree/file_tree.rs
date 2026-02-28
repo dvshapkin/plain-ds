@@ -7,27 +7,34 @@ use std::path::{Component, Path};
 /// `FileTree` is a data structure for compactly storing in memory hierarchical objects
 /// such as files and directories. It also provides fast search and access to data.
 ///
+/// **Implementation Features** <br>
 /// If all the file paths you plan to store in `FileTree` begin with the same long prefix,
 /// it's better to store this prefix separately, outside of this structure.
 ///
 /// For example, you have several file paths:
+///```plain text
+/// /very/long/prefix/to/my/files/file.01
 ///
-/// first: `/very/long/prefix/to/my/files/file.01`
-/// second: `/very/long/prefix/to/my/files/a/file.02`
-/// third: `/very/long/prefix/to/my/files/b/c/file.03`
+/// /very/long/prefix/to/my/files/a/file.02
 ///
-/// common prefix is: `/very/long/prefix/to/my/files` - store it separately,
-/// and in `FileTree` store short paths: `/file.01`, `/a/file.02` and `/b/c/file.03`
+/// /very/long/prefix/to/my/files/b/c/file.03
+///```
+///
+/// Common prefix is: `/very/long/prefix/to/my/files` - store it separately.
+///
+/// And in `FileTree` store short paths: `/file.01`, `/a/file.02` and `/b/c/file.03`.
+///
 /// In this case, `FileTree` will store the following hierarchy:
-///                           `/`
-///                +-----------+------------+
-///            `file.01`      `a`          `b`
-///                            +            +
-///                        `file.02`       `c`
-///                                         +
-///                                     `file.03`
-///
-/// All paths in `FileTree` must be absolute (i.e., start with `/`).
+///```plain text
+///                    /
+///        +-----------+------------+
+///     file.01        a            b
+///                    +            +
+///                 file.02         c
+///                                 +
+///                              file.03
+///```
+/// All paths in `FileTree` must be absolute (i.e., start with `/`). <br>
 /// Do not include any prefixes into paths (for example, like in Windows - `C:`).
 pub struct FileTree {
     root: Node,
