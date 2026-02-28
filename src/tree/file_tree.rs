@@ -47,6 +47,34 @@ impl FileTree {
         }
     }
 
+    /// Checks if `path` is contained in the tree.
+    ///
+    /// `is_file` set to `true` if checked `path` is a file, else set to `false`.
+    pub fn contains<P: AsRef<Path>>(&self, path: P, is_file: bool) -> Result<bool> {
+        let path = path.as_ref();
+        if path.as_os_str() == "" {
+            return Err(DSError::EmptyPath);
+        }
+        if !path.is_absolute() {
+            return Err(DSError::NotAbsolutePath {
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+        if path.as_os_str() == "/" {
+            return Ok(true);
+        }
+
+        // Skip RootDir
+        let mut components: Vec<_> = path.components().skip(1).collect();
+        let file_component = if is_file {
+            components.pop()
+        } else {
+            None
+        };
+
+        Ok(self.check_path(&components, file_component))
+    }
+
     /// Add directory into tree.
     ///
     /// `path` must be absolute (i.e., start with `/`) and not contain prefixes
@@ -65,7 +93,8 @@ impl FileTree {
             return Ok(());
         }
 
-        let components: Vec<_> = path.components().collect();
+        // Skip RootDir
+        let components: Vec<_> = path.components().skip(1).collect();
 
         // Create all necessary directories
         let _ = self.ensure_dirs(&components);
@@ -91,7 +120,8 @@ impl FileTree {
             return Ok(());
         }
 
-        let mut components: Vec<_> = path.components().collect();
+        // Skip RootDir
+        let mut components: Vec<_> = path.components().skip(1).collect();
         let file_component = components.pop().ok_or(DSError::EmptyPath)?;
 
         // First pass: create all necessary directories
@@ -109,11 +139,45 @@ impl FileTree {
         Ok(())
     }
 
+    fn check_path(&self, components: &[Component<'_>], file_component: Option<Component<'_>>) -> bool {
+        let mut current = &self.root;
+
+        // First pass: checks all parent directories
+        let mut is_found = true;
+        for component in components {
+            let name = component.as_os_str().to_string_lossy().to_string();
+
+            if let Some(childs) = &current.childs {
+                if !childs.dirs.contains_key(&name) {
+                    is_found = false;
+                    break;
+                }
+                current = &childs.dirs[&name];
+            } else {
+                is_found = false;
+                break;
+            }
+        }
+
+        // Second pass: checks the file in the last directory
+        if let Some(file_component) = file_component && is_found {
+            let name = file_component.as_os_str().to_string_lossy().to_string();
+            if let Some(childs) = &current.childs {
+                if !childs.files.contains_key(&name) {
+                    is_found = false;
+                }
+            } else {
+                is_found = false;
+            }
+        }
+
+        is_found
+    }
+
     fn ensure_dirs(&mut self, components: &[Component<'_>]) -> &mut Node {
         let mut current = &mut self.root;
 
-        // Skip RootDir
-        for component in components.iter().skip(1) {
+        for component in components {
             let name = component.as_os_str().to_string_lossy().to_string();
 
             let childs = current
@@ -302,6 +366,163 @@ mod tests {
             } else {
                 panic!("Expected EmptyPath error for empty path");
             }
+        }
+    }
+
+    mod contains {
+        use super::*;
+
+        /// Test that root path is always contained in the tree.
+        #[test]
+        fn test_contains_root_path() {
+            let tree = FileTree::new();
+
+            assert_eq!(tree.contains("/", false), Ok(true));
+            assert_eq!(tree.contains("/", true), Ok(true)); // Root can be considered as existing
+        }
+
+        /// Test checking existence of a simple directory.
+        #[test]
+        fn test_contains_simple_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/home")).unwrap();
+
+            assert_eq!(tree.contains("/home", false), Ok(true));
+            assert_eq!(tree.contains("/home", true), Ok(false)); // Not a file
+        }
+
+        /// Test checking existence of a nested directory.
+        #[test]
+        fn test_contains_nested_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/home/user/documents")).unwrap();
+
+            assert_eq!(tree.contains("/home", false), Ok(true));
+            assert_eq!(tree.contains("/home/user", false), Ok(true));
+            assert_eq!(tree.contains("/home/user/documents", false), Ok(true));
+        }
+
+        /// Test checking existence of a file.
+        #[test]
+        fn test_contains_file() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/home/user/document.txt")).unwrap();
+
+            assert_eq!(tree.contains("/home/user/document.txt", true), Ok(true));
+            assert_eq!(tree.contains("/home/user/document.txt", false), Ok(false)); // It's a file, not a directory
+        }
+
+        /// Test checking non‑existent path.
+        #[test]
+        fn test_contains_nonexistent_path() {
+            let tree = FileTree::new();
+
+            assert_eq!(tree.contains("/nonexistent", false), Ok(false));
+            assert_eq!(tree.contains("/home/user/file.txt", true), Ok(false));
+        }
+
+        /// Test checking file existence in non‑existent directory.
+        #[test]
+        fn test_contains_file_in_nonexistent_dir() {
+            let mut tree = FileTree::new();
+            // Add only the parent directory
+            tree.add_dir(Path::new("/home")).unwrap();
+
+            // File doesn't exist
+            assert_eq!(tree.contains("/home/user/document.txt", true), Ok(false));
+
+            // Directory doesn't exist
+            assert_eq!(tree.contains("/home/user", false), Ok(false));
+        }
+
+        /// Test error when checking empty path.
+        #[test]
+        fn test_contains_empty_path_error() {
+            let tree = FileTree::new();
+
+            let result = tree.contains("", false);
+            assert!(result.is_err());
+            if let Err(DSError::EmptyPath) = result {
+                // Expected error type
+            } else {
+                panic!("Expected EmptyPath error for empty path");
+            }
+        }
+
+        /// Test error when checking non‑absolute path.
+        #[test]
+        fn test_contains_non_absolute_path_error() {
+            let tree = FileTree::new();
+
+            let result = tree.contains("relative/path", false);
+            assert!(result.is_err());
+            if let Err(DSError::NotAbsolutePath { path }) = result {
+                assert_eq!(path, "relative/path");
+            } else {
+                panic!("Expected NotAbsolutePath error");
+            }
+        }
+
+        /// Test checking multiple paths in a complex tree structure.
+        #[test]
+        fn test_contains_multiple_paths_complex_tree() {
+            let mut tree = FileTree::new();
+
+            // Build a complex tree
+            tree.add_dir(Path::new("/etc")).unwrap();
+            tree.add_dir(Path::new("/var/log")).unwrap();
+            tree.add_file(Path::new("/etc/config")).unwrap();
+            tree.add_file(Path::new("/var/log/system.log")).unwrap();
+
+            // Test various paths
+            assert_eq!(tree.contains("/etc", false), Ok(true));
+            assert_eq!(tree.contains("/var", false), Ok(true));
+            assert_eq!(tree.contains("/var/log", false), Ok(true));
+            assert_eq!(tree.contains("/etc/config", true), Ok(true));
+            assert_eq!(tree.contains("/var/log/system.log", true), Ok(true));
+            assert_eq!(tree.contains("/etc/passwd", true), Ok(false));
+            assert_eq!(tree.contains("/tmp", false), Ok(false));
+        }
+
+        /// Test checking path with special characters.
+        #[test]
+        fn test_contains_path_with_special_chars() {
+            let mut tree = FileTree::new();
+
+            tree.add_dir(Path::new("/special-@#$%")).unwrap();
+            tree.add_file(Path::new("/special-@#$%/test.file")).unwrap();
+
+            assert_eq!(tree.contains("/special-@#$%", false), Ok(true));
+            assert_eq!(tree.contains("/special-@#$%/test.file", true), Ok(true));
+            assert_eq!(tree.contains("/special-@#$%/nonexistent", true), Ok(false));
+        }
+
+        /// Test checking directory that exists as a file (should return false).
+        #[test]
+        fn test_contains_dir_but_is_file() {
+            let mut tree = FileTree::new();
+
+            // Add a file that would conflict with directory name
+            tree.add_file(Path::new("/conflicted")).unwrap();
+
+            // Should not be found as a directory
+            assert_eq!(tree.contains("/conflicted", false), Ok(false));
+            // But should be found as a file
+            assert_eq!(tree.contains("/conflicted", true), Ok(true));
+        }
+
+        /// Test checking file that exists as a directory (should return false).
+        #[test]
+        fn test_contains_file_but_is_dir() {
+            let mut tree = FileTree::new();
+
+            // Add a directory that would conflict with file name
+            tree.add_dir(Path::new("/conflicted")).unwrap();
+
+            // Should not be found as a file
+            assert_eq!(tree.contains("/conflicted", true), Ok(false));
+            // But should be found as a directory
+            assert_eq!(tree.contains("/conflicted", false), Ok(true));
         }
     }
 }
