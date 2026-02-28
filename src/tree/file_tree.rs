@@ -62,7 +62,9 @@ impl FileTree {
             });
         }
         if path.as_os_str() == "/" {
-            return Ok(true);
+            return Err(DSError::NotFile {
+                path: path.to_string_lossy().into_owned(),
+            });
         }
 
         // Skip RootDir
@@ -141,7 +143,9 @@ impl FileTree {
             });
         }
         if path.as_os_str() == "/" {
-            return Ok(());
+            return Err(DSError::NotFile {
+                path: path.to_string_lossy().into_owned(),
+            });
         }
 
         // Skip RootDir
@@ -162,6 +166,27 @@ impl FileTree {
         Ok(())
     }
 
+    pub fn remove_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        if path.as_os_str() == "" {
+            return Err(DSError::EmptyPath);
+        }
+        if !path.is_absolute() {
+            return Err(DSError::NotAbsolutePath {
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+        if path.as_os_str() == "/" {
+            return Err(DSError::NotFile {
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+
+        todo!();
+
+        Ok(())
+    }
+
     /// Clears all tree contents.
     ///
     /// **Efficiency**: O(1)
@@ -169,7 +194,11 @@ impl FileTree {
         if let Some(_) = self.root.childs.take() {}
     }
 
-    fn check_path(&self, components: &[Component<'_>], file_component: Option<Component<'_>>) -> bool {
+    fn check_path(
+        &self,
+        components: &[Component<'_>],
+        file_component: Option<Component<'_>>,
+    ) -> bool {
         let mut current = &self.root;
 
         // First pass: checks all parent directories
@@ -190,7 +219,9 @@ impl FileTree {
         }
 
         // Second pass: checks the file in the last directory
-        if let Some(file_component) = file_component && is_found {
+        if let Some(file_component) = file_component
+            && is_found
+        {
             let name = file_component.as_os_str().to_string_lossy().to_string();
             if let Some(childs) = &current.childs {
                 if !childs.files.contains(&name) {
@@ -222,7 +253,6 @@ impl FileTree {
         current
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -296,7 +326,14 @@ mod tests {
             assert!(tree.add_file(Path::new("/projects/rust/main.rs")).is_ok());
 
             // Verify full path was created
-            let projects = tree.root.childs.as_ref().unwrap().dirs.get("projects").unwrap();
+            let projects = tree
+                .root
+                .childs
+                .as_ref()
+                .unwrap()
+                .dirs
+                .get("projects")
+                .unwrap();
             let rust = projects.childs.as_ref().unwrap().dirs.get("rust").unwrap();
             assert!(rust.childs.as_ref().unwrap().files.contains("main.rs"));
         }
@@ -378,7 +415,14 @@ mod tests {
             assert!(tree.add_dir(Path::new("/special-@#$%/test")).is_ok());
 
             // Verify it was added correctly
-            let special = tree.root.childs.as_ref().unwrap().dirs.get("special-@#$%").unwrap();
+            let special = tree
+                .root
+                .childs
+                .as_ref()
+                .unwrap()
+                .dirs
+                .get("special-@#$%")
+                .unwrap();
             assert!(special.childs.as_ref().unwrap().dirs.contains_key("test"));
         }
 
@@ -408,7 +452,12 @@ mod tests {
             let tree = FileTree::new();
 
             assert_eq!(tree.contains_dir("/"), Ok(true));
-            assert_eq!(tree.contains_file("/"), Ok(true)); // Root can be considered as existing
+            assert_eq!(
+                tree.contains_file("/"),
+                Err(DSError::NotFile {
+                    path: "/".to_string()
+                })
+            ); // Root can be considered as existing
         }
 
         /// Test checking existence of a simple directory.

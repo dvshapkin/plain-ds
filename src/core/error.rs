@@ -4,6 +4,8 @@ pub enum DSError {
     EmptyPath,
     WrongPath { path: String },
     NotAbsolutePath { path: String },
+    NotFile { path: String },
+    NotDirectory { path: String },
 }
 
 pub type Result<T> = std::result::Result<T, DSError>;
