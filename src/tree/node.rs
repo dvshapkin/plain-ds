@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::ffi::OsString;
 
 #[derive(Debug, PartialEq)]
 pub enum ComponentType {
@@ -9,8 +8,8 @@ pub enum ComponentType {
 }
 
 pub struct Childs {
-    pub dirs: Box<BTreeMap<OsString, Node>>,
-    pub files: Box<BTreeMap<OsString, Node>>,
+    pub dirs: Box<BTreeMap<String, Node>>,
+    pub files: Box<BTreeMap<String, Node>>,
 }
 
 impl Childs {
@@ -23,7 +22,7 @@ impl Childs {
 }
 
 pub struct Node {
-    pub name: OsString,
+    pub name: String,
     pub r#type: ComponentType,
     pub childs: Option<Box<Childs>>,
 }
@@ -31,7 +30,7 @@ pub struct Node {
 impl Node {
     pub fn new(name: &str, r#type: ComponentType) -> Self {
         Self {
-            name: OsString::from(name),
+            name: String::from(name),
             r#type,
             childs: None,
         }
