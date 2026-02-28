@@ -1,5 +1,5 @@
 use crate::core::DSError;
-use crate::core::{Iter, IterMut, Node};
+use super::{Iter, IterMut, Node};
 use std::ptr;
 
 /// `ListCommon` is a core of all lists implementation.

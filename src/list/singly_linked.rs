@@ -2,10 +2,10 @@
 
 use std::ptr;
 
-use crate::list::api::List;
+use super::api::List;
+use super::common::ListCommon;
+use super::node_one_link::{Node, merge_sort};
 use crate::core::{DSError, Result};
-use crate::core::{Node, merge_sort};
-use crate::list::common::ListCommon;
 
 /// A singly-linked list implementation with efficient insertion at the front and back.
 ///
@@ -246,7 +246,6 @@ impl<'a, T: 'a> List<'a, T> for SinglyLinkedList<T> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,7 +262,11 @@ mod tests {
     #[test]
     fn test_from_slice() {
         let list = SinglyLinkedList::from_slice(&[2, 1, 5, 4, 3]);
-        assert_eq!(list.to_vec(), [2, 1, 5, 4, 3], "The order of elements must be preserved");
+        assert_eq!(
+            list.to_vec(),
+            [2, 1, 5, 4, 3],
+            "The order of elements must be preserved"
+        );
     }
 
     mod get {
@@ -675,7 +678,8 @@ mod tests {
             assert_eq!(list.head(), Some(&1), "incorrect head after push_front()");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -685,7 +689,8 @@ mod tests {
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -723,7 +728,8 @@ mod tests {
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 
