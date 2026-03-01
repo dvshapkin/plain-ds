@@ -166,6 +166,7 @@ impl FileTree {
         Ok(())
     }
 
+    /// Removes a file from the tree.
     pub fn remove_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         if path.as_os_str() == "" {
@@ -182,7 +183,67 @@ impl FileTree {
             });
         }
 
-        todo!();
+        // Skip RootDir
+        let mut components: Vec<_> = path.components().skip(1).collect();
+        let file_component = components.pop().ok_or(DSError::EmptyPath)?;
+
+        // First pass: find the parent directory
+        let parent_node = self.find_dir(&components)?;
+
+        // Second pass: remove the file from the parent directory
+        let file_name = file_component.as_os_str().to_string_lossy().to_string();
+
+        if let Some(childs) = &mut parent_node.childs {
+            if !childs.files.contains(&file_name) {
+                // File doesn't exist — return success as operation is idempotent
+                return Ok(());
+            }
+            childs.files.remove(&file_name);
+        } else {
+            // No children — file can't exist
+            return Ok(());
+        }
+
+        Ok(())
+    }
+
+    /// Removes a directory (with all its entries) from the tree.
+    pub fn remove_dir<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+        let path = path.as_ref();
+        if path.as_os_str() == "" {
+            return Err(DSError::EmptyPath);
+        }
+        if !path.is_absolute() {
+            return Err(DSError::NotAbsolutePath {
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+        if path.as_os_str() == "/" {
+            return Err(DSError::NotFile {
+                path: path.to_string_lossy().into_owned(),
+            });
+        }
+
+        // Skip RootDir
+        let mut components: Vec<_> = path.components().skip(1).collect();
+        let dir_component = components.pop().ok_or(DSError::EmptyPath)?;
+
+        // First pass: find the parent directory
+        let parent = self.find_dir(&components)?;
+
+        // Second pass: remove the directory from the parent
+        let dir_name = dir_component.as_os_str().to_string_lossy().to_string();
+
+        if let Some(childs) = &mut parent.childs {
+            if !childs.dirs.contains_key(&dir_name) {
+                // Directory doesn't exist — return success as operation is idempotent
+                return Ok(());
+            }
+            childs.dirs.remove(&dir_name);
+        } else {
+            // No children — file can't exist
+            return Ok(());
+        }
 
         Ok(())
     }
@@ -251,6 +312,47 @@ impl FileTree {
         }
 
         current
+    }
+
+    /// Helper method to find a directory node by path components.
+    /// Returns error if any component in the path doesn't exist.
+    fn find_dir(&mut self, components: &[Component<'_>]) -> Result<&mut DirNode> {
+        let full_path = self.build_path(components);
+        let mut current = &mut self.root;
+
+        for component in components {
+            let name = component.as_os_str().to_string_lossy().to_string();
+
+            if let Some(childs) = &mut current.childs {
+                if let Some(dir) = childs.dirs.get_mut(&name) {
+                    current = dir;
+                } else {
+                    return Err(DSError::PathNotFound {
+                        path: full_path,
+                    });
+                }
+            } else {
+                return Err(DSError::PathNotFound {
+                    path: full_path,
+                });
+            }
+        }
+
+        Ok(current)
+    }
+
+    /// Helper method to build a string path from components for error reporting.
+    fn build_path(&self, components: &[Component<'_>]) -> String {
+        let mut path = String::from("/");
+        for component in components {
+            path.push_str(component.as_os_str().to_string_lossy().as_ref());
+            path.push('/');
+        }
+        // Remove trailing slash if path is not root
+        if path.len() > 1 {
+            path.pop();
+        }
+        path
     }
 }
 

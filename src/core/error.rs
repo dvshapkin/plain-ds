@@ -6,6 +6,7 @@ pub enum DSError {
     NotAbsolutePath { path: String },
     NotFile { path: String },
     NotDirectory { path: String },
+    PathNotFound { path: String },
 }
 
 pub type Result<T> = std::result::Result<T, DSError>;
