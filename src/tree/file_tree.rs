@@ -48,6 +48,17 @@ impl FileTree {
         }
     }
 
+    /// Checks if the tree is empty.
+    ///
+    /// **Efficiency**: O(1)
+    pub fn is_empty(&self) -> bool {
+        if let Some(childs) = &self.root.childs {
+            childs.is_empty()
+        } else {
+            true
+        }
+    }
+
     /// Checks if `path` is contained in the tree as file.
     ///
     /// **Efficiency**: O(n), where `n` is a path length (in components).

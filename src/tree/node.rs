@@ -14,6 +14,10 @@ impl Childs {
             files: Box::new(BTreeSet::new())
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.dirs.is_empty() && self.files.is_empty()
+    }
 }
 
 #[derive(Debug)]
