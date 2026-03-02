@@ -195,13 +195,17 @@ impl FileTree {
 
         if let Some(childs) = &mut parent_node.childs {
             if !childs.files.contains(&file_name) {
-                // File doesn't exist — return success as operation is idempotent
-                return Ok(());
+                // File doesn't exist — return error
+                return Err(DSError::PathNotFound {
+                    path: path.to_string_lossy().into_owned(),
+                });
             }
             childs.files.remove(&file_name);
         } else {
             // No children — file can't exist
-            return Ok(());
+            return Err(DSError::PathNotFound {
+                path: path.to_string_lossy().into_owned(),
+            });
         }
 
         Ok(())
@@ -236,13 +240,17 @@ impl FileTree {
 
         if let Some(childs) = &mut parent.childs {
             if !childs.dirs.contains_key(&dir_name) {
-                // Directory doesn't exist — return success as operation is idempotent
-                return Ok(());
+                // Directory doesn't exist — return error
+                return Err(DSError::PathNotFound {
+                    path: path.to_string_lossy().into_owned(),
+                });
             }
             childs.dirs.remove(&dir_name);
         } else {
             // No children — file can't exist
-            return Ok(());
+            return Err(DSError::PathNotFound {
+                path: path.to_string_lossy().into_owned(),
+            });
         }
 
         Ok(())
@@ -327,14 +335,10 @@ impl FileTree {
                 if let Some(dir) = childs.dirs.get_mut(&name) {
                     current = dir;
                 } else {
-                    return Err(DSError::PathNotFound {
-                        path: full_path,
-                    });
+                    return Err(DSError::PathNotFound { path: full_path });
                 }
             } else {
-                return Err(DSError::PathNotFound {
-                    path: full_path,
-                });
+                return Err(DSError::PathNotFound { path: full_path });
             }
         }
 
@@ -704,6 +708,388 @@ mod tests {
             assert_eq!(tree.contains_file("/conflicted"), Ok(false));
             // But should be found as a directory
             assert_eq!(tree.contains_dir("/conflicted"), Ok(true));
+        }
+    }
+
+    mod remove_file {
+        use super::*;
+
+        /// Test removing a simple file from root directory.
+        #[test]
+        fn test_remove_simple_file() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/document.txt")).unwrap();
+
+            // Verify file exists before removal
+            assert_eq!(tree.contains_file("/document.txt"), Ok(true));
+
+            // Remove the file
+            assert!(tree.remove_file("/document.txt").is_ok());
+
+            // Verify file no longer exists
+            assert_eq!(tree.contains_file("/document.txt"), Ok(false));
+        }
+
+        /// Test removing file from nested directory.
+        #[test]
+        fn test_remove_nested_file() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/home/user/document.txt")).unwrap();
+
+            // Verify file exists
+            assert_eq!(tree.contains_file("/home/user/document.txt"), Ok(true));
+
+            // Remove the file
+            assert!(tree.remove_file("/home/user/document.txt").is_ok());
+
+            // Verify file is gone
+            assert_eq!(tree.contains_file("/home/user/document.txt"), Ok(false));
+
+            // But the directories should still exist
+            assert_eq!(tree.contains_dir("/home"), Ok(true));
+            assert_eq!(tree.contains_dir("/home/user"), Ok(true));
+        }
+
+        /// Test idempotent behavior — removing same file twice.
+        #[test]
+        fn test_idempotent_remove_file() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/tmp/file.txt")).unwrap();
+
+            // First removal
+            assert!(tree.remove_file("/tmp/file.txt").is_ok());
+            // Second removal of same path
+            assert!(tree.remove_file("/tmp/file.txt").is_err()); // Should not fail
+
+            // File should not exist
+            assert_eq!(tree.contains_file("/tmp/file.txt"), Ok(false));
+        }
+
+        /// Test removing non-existent file.
+        #[test]
+        fn test_remove_nonexistent_file() {
+            let mut tree = FileTree::new();
+
+            // Try to remove file that doesn't exist
+            assert!(tree.remove_file("/nonexistent.txt").is_err());
+
+            // Tree should be empty
+            assert!(tree.root.childs.is_none());
+        }
+
+        /// Test error when removing empty path.
+        #[test]
+        fn test_remove_empty_path_error() {
+            let mut tree = FileTree::new();
+
+            let result = tree.remove_file("");
+            assert!(result.is_err());
+            if let Err(DSError::EmptyPath) = result {
+                // Expected error type
+            } else {
+                panic!("Expected EmptyPath error for empty path");
+            }
+        }
+
+        /// Test error when removing non-absolute path.
+        #[test]
+        fn test_remove_non_absolute_path_error() {
+            let mut tree = FileTree::new();
+
+            let result = tree.remove_file("relative/path/file.txt");
+            assert!(result.is_err());
+            if let Err(DSError::NotAbsolutePath { path }) = result {
+                assert_eq!(path, "relative/path/file.txt");
+            } else {
+                panic!("Expected NotAbsolutePath error");
+            }
+        }
+
+        /// Test error when trying to remove root as file.
+        #[test]
+        fn test_remove_root_as_file_error() {
+            let mut tree = FileTree::new();
+
+            let result = tree.remove_file("/");
+            assert!(result.is_err());
+            if let Err(DSError::NotFile { path }) = result {
+                assert_eq!(path, "/");
+            } else {
+                panic!("Expected NotFile error for root path");
+            }
+        }
+
+        /// Test removing multiple files from same directory.
+        #[test]
+        fn test_remove_multiple_files() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/tmp/file1.txt")).unwrap();
+            tree.add_file(Path::new("/tmp/file2.txt")).unwrap();
+            tree.add_file(Path::new("/tmp/script.sh")).unwrap();
+
+            // Remove one file
+            assert!(tree.remove_file("/tmp/file1.txt").is_ok());
+            assert_eq!(tree.contains_file("/tmp/file1.txt"), Ok(false));
+
+            // Remove another
+            assert!(tree.remove_file("/tmp/script.sh").is_ok());
+            assert_eq!(tree.contains_file("/tmp/script.sh"), Ok(false));
+
+            // One file should still exist
+            assert_eq!(tree.contains_file("/tmp/file2.txt"), Ok(true));
+        }
+
+        /// Test removing file with special characters in name.
+        #[test]
+        fn test_remove_file_with_special_chars() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/special-@#$%/test.file")).unwrap();
+
+            assert_eq!(tree.contains_file("/special-@#$%/test.file"), Ok(true));
+
+            // Remove file with special characters
+            assert!(tree.remove_file("/special-@#$%/test.file").is_ok());
+
+            assert_eq!(tree.contains_file("/special-@#$%/test.file"), Ok(false));
+        }
+    }
+
+    mod remove_dir {
+        use super::*;
+
+        /// Test removing simple directory.
+        #[test]
+        fn test_remove_simple_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/home")).unwrap();
+
+            assert_eq!(tree.contains_dir("/home"), Ok(true));
+
+            assert!(tree.remove_dir("/home").is_ok());
+
+            assert_eq!(tree.contains_dir("/home"), Ok(false));
+        }
+
+        /// Test removing nested directory with files.
+        #[test]
+        fn test_remove_nested_dir_with_files() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/projects/rust/main.rs")).unwrap();
+            tree.add_file(Path::new("/projects/python/script.py"))
+                .unwrap();
+
+            // Remove parent directory — this should remove all contents
+            assert!(tree.remove_dir("/projects").is_ok());
+
+            // All paths under /projects should be gone
+            assert_eq!(tree.contains_dir("/projects"), Ok(false));
+            assert_eq!(tree.contains_dir("/projects/rust"), Ok(false));
+            assert_eq!(tree.contains_file("/projects/rust/main.rs"), Ok(false));
+            assert_eq!(tree.contains_file("/projects/python/script.py"), Ok(false));
+        }
+
+        /// Test idempotent directory removal.
+        #[test]
+        fn test_idempotent_remove_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/var/log")).unwrap();
+
+            assert!(tree.remove_dir("/var/log").is_ok());
+            assert!(tree.remove_dir("/var/log").is_err()); // Second removal
+
+            assert_eq!(tree.contains_dir("/var/log"), Ok(false));
+        }
+
+        /// Test removing non-existent directory.
+        #[test]
+        fn test_remove_nonexistent_dir() {
+            let mut tree = FileTree::new();
+
+            // Removing non-existent directory should succeed (idempotent)
+            assert!(tree.remove_dir("/nonexistent").is_err());
+        }
+
+        /// Test error when removing root directory.
+        #[test]
+        fn test_remove_root_dir_error() {
+            let mut tree = FileTree::new();
+
+            let result = tree.remove_dir("/");
+            assert!(result.is_err());
+            if let Err(DSError::NotFile { path }) = result {
+                assert_eq!(path, "/");
+            } else {
+                panic!("Expected NotFile error for root path");
+            }
+        }
+
+        /// Test removing directory with special characters in name.
+        #[test]
+        fn test_remove_dir_with_special_chars() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/special-@#$%/test")).unwrap();
+
+            assert_eq!(tree.contains_dir("/special-@#$%/test"), Ok(true));
+
+            // Remove directory with special characters
+            assert!(tree.remove_dir("/special-@#$%/test").is_ok());
+
+            assert_eq!(tree.contains_dir("/special-@#$%/test"), Ok(false));
+        }
+
+        /// Test error when removing file path as directory.
+        #[test]
+        fn test_remove_file_path_as_dir() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/tmp/document.txt")).unwrap();
+
+            // Try to remove file path as directory
+            assert!(tree.remove_dir("/tmp/document.txt").is_err());
+            // Should error (idempotent) even though it's not a directory
+
+            // File should still exist
+            assert_eq!(tree.contains_file("/tmp/document.txt"), Ok(true));
+        }
+
+        /// Test removing intermediate directory — should remove all children.
+        #[test]
+        fn test_remove_intermediate_dir() {
+            let mut tree = FileTree::new();
+            tree.add_file(Path::new("/projects/rust/src/main.rs"))
+                .unwrap();
+            tree.add_file(Path::new("/projects/rust/tests/unit.rs"))
+                .unwrap();
+            tree.add_file(Path::new("/projects/python/app.py")).unwrap();
+
+            // Remove intermediate directory /projects/rust
+            assert!(tree.remove_dir("/projects/rust").is_ok());
+
+            // All paths under /projects/rust should be gone
+            assert_eq!(tree.contains_dir("/projects/rust"), Ok(false));
+            assert_eq!(tree.contains_file("/projects/rust/src/main.rs"), Ok(false));
+            assert_eq!(
+                tree.contains_file("/projects/rust/tests/unit.rs"),
+                Ok(false)
+            );
+
+            // But /projects/python should still exist
+            assert_eq!(tree.contains_dir("/projects/python"), Ok(true));
+            assert_eq!(tree.contains_file("/projects/python/app.py"), Ok(true));
+        }
+
+        /// Test removing directory that doesn't exist in middle of path.
+        #[test]
+        fn test_remove_nonexistent_middle_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir("/existing/path").unwrap();
+
+            // Try to remove directory with non‑existent parent
+            let result = tree.remove_dir("/nonexistent/parent/dir");
+            assert!(result.is_err()); // Should be error
+
+            // Existing path should still be there
+            assert_eq!(tree.contains_dir("/existing/path"), Ok(true));
+        }
+    }
+
+    mod find_dir {
+        use super::*;
+
+        /// Test successful finding of existing directory.
+        #[test]
+        fn test_find_existing_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/home/user/documents")).unwrap();
+
+            let components: Vec<_> = Path::new("/home/user").components().skip(1).collect();
+
+            let result = tree.find_dir(&components);
+            assert!(result.is_ok());
+        }
+
+        /// Test finding root directory.
+        #[test]
+        fn test_find_root_dir() {
+            let mut tree = FileTree::new();
+
+            let empty_components: Vec<Component<'_>> = vec![];
+            let result = tree.find_dir(&empty_components);
+            assert!(result.is_ok());
+        }
+
+        /// Test error when finding non-existent directory.
+        #[test]
+        fn test_find_nonexistent_dir() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/home")).unwrap();
+
+            let components: Vec<_> = Path::new("/home/nonexistent")
+                .components()
+                .skip(1)
+                .collect();
+
+            let result = tree.find_dir(&components);
+            assert!(result.is_err());
+            if let Err(DSError::PathNotFound { path }) = result {
+                assert_eq!(path, "/home/nonexistent");
+            } else {
+                panic!("Expected PathNotFound error");
+            }
+        }
+
+        /// Test finding directory with partial path.
+        #[test]
+        fn test_find_partial_path() {
+            let mut tree = FileTree::new();
+            tree.add_dir(Path::new("/a/b/c/d")).unwrap();
+
+            // Find /a/b
+            let components: Vec<_> = Path::new("/a/b").components().skip(1).collect();
+
+            let result = tree.find_dir(&components);
+            assert!(result.is_ok());
+
+            // Find /a/b/c
+            let components2: Vec<_> = Path::new("/a/b/c").components().skip(1).collect();
+            let result2 = tree.find_dir(&components2);
+            assert!(result2.is_ok());
+        }
+    }
+
+    mod build_path {
+        use super::*;
+
+        /// Test building path from components.
+        #[test]
+        fn test_build_path_simple() {
+            let tree = FileTree::new();
+            let components: Vec<_> = Path::new("/home/user").components().skip(1).collect();
+
+            let path = tree.build_path(&components);
+            assert_eq!(path, "/home/user");
+        }
+
+        /// Test building root path.
+        #[test]
+        fn test_build_root_path() {
+            let tree = FileTree::new();
+            let empty_components: Vec<Component<'_>> = vec![];
+
+            let path = tree.build_path(&empty_components);
+            assert_eq!(path, "/");
+        }
+
+        /// Test building complex path with special characters.
+        #[test]
+        fn test_build_path_special_chars() {
+            let tree = FileTree::new();
+            let components: Vec<_> = Path::new("/special-@#$%/test/path")
+                .components()
+                .skip(1)
+                .collect();
+
+            let path = tree.build_path(&components);
+            assert_eq!(path, "/special-@#$%/test/path");
         }
     }
 
