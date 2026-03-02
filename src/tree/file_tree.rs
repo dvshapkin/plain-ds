@@ -1,8 +1,10 @@
 //! This module contains file-tree implementation.
 
+use std::path::{Component, Path};
+
+use super::iter::Iter;
 use super::node::{Childs, DirNode};
 use crate::{DSError, Result};
-use std::path::{Component, Path};
 
 /// `FileTree` is a specialized data structure for compactly storing in memory hierarchical
 /// structure of files and directories. It also provides fast search and access to data.
@@ -266,6 +268,21 @@ impl FileTree {
 
         Ok(())
     }
+
+    pub fn sub_tree<P: AsRef<Path>>(&mut self, from: P) -> Result<()> {
+        todo!()
+    }
+
+    /// Returns an iterator over the immutable items of the list.
+    pub fn iter(&self) -> impl Iterator<Item = &Path> {
+        Iter::new(Path::new("/"))
+    }
+
+    // /// Returns an iterator over the mutable items of the list.
+    // pub fn iter_mut(&mut self) -> impl Iterator<Item = &'a mut T>;
+    //
+    // /// Returns an iterator that consumes the list.
+    // pub fn into_iter(self) -> impl Iterator<Item = T>;
 
     /// Clears all tree contents.
     ///

@@ -18,6 +18,12 @@ categories = ["data-structures"]
 [lib]
 doctest = false
 
+[features]
+default = ["tree"]
+list = []
+tree = []
+full = ["list", "tree"]
+
 [dependencies]
 
 [dev-dependencies]
