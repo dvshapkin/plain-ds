@@ -253,6 +253,27 @@ impl FileTree {
         self.childs.clear();
     }
 
+    /// Visits all leaf elements in the tree and performs a `visitor` for each of them.
+    pub fn visit(&self, mut visitor: impl FnMut(&Path)) {
+        fn visit_recursive(parent: &Path, childs: &Childs, visitor: &mut impl FnMut(&Path)) {
+            for name in childs.files.iter() {
+                visitor(parent.join(Path::new(name)).as_path())
+            }
+            for (name, sub_childs) in childs.dirs.iter() {
+                let parent = parent.join(Path::new(name));
+                if sub_childs.is_empty() {
+                    visitor(&parent);
+                } else {
+                    visit_recursive(&parent, sub_childs, visitor);
+                }
+            }
+        }
+
+        let parent = Path::new("/");
+
+        visit_recursive(parent, &self.childs, &mut visitor);
+    }
+
     fn check_path(
         &self,
         components: &[Component<'_>],
@@ -1134,6 +1155,181 @@ mod tests {
             tree.clear(); // Second clear
 
             assert!(tree.childs.is_empty());
+        }
+    }
+
+    mod visit {
+        use std::path::PathBuf;
+        use super::*;
+
+        /// Test visiting an empty tree — no paths should be visited.
+        #[test]
+        fn test_visit_empty_tree() {
+            let tree = FileTree::new();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert!(visited.is_empty(), "Empty tree should not visit any paths");
+        }
+
+        /// Test visiting a tree with a single directory at the root level.
+        /// Expected: visitor is called with "/home".
+        #[test]
+        fn test_visit_single_root_directory() {
+            let mut tree = FileTree::new();
+            tree.add_dir("/home").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(visited, vec![PathBuf::from("/home")], "Should visit /home");
+        }
+
+        /// Test visiting a tree with a single file at the root level.
+        /// Expected: visitor is called with "/file.txt".
+        #[test]
+        fn test_visit_single_root_file() {
+            let mut tree = FileTree::new();
+            tree.add_file("/file.txt").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(visited, vec![PathBuf::from("/file.txt")], "Should visit file.txt");
+        }
+
+        /// Test visiting a nested directory structure.
+        /// Tree: /home/user/documents
+        /// Expected paths: "/home/user/documents".
+        #[test]
+        fn test_visit_nested_directories() {
+            let mut tree = FileTree::new();
+            tree.add_dir("/home/user/documents").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(
+                visited,
+                vec![PathBuf::from("/home/user/documents")],
+                "Should visit the full nested directory path"
+            );
+        }
+
+        /// Test visiting a tree with files in nested directories.
+        /// Tree:
+        ///   /etc/passwd
+        ///   /var/log/messages
+        /// Expected paths:
+        ///   "/etc/passwd"
+        ///   "/var/log/messages"
+        #[test]
+        fn test_visit_files_in_nested_directories() {
+            let mut tree = FileTree::new();
+            tree.add_file("/etc/passwd").unwrap();
+            tree.add_file("/var/log/messages").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            // BTreeSet гарантирует лексикографический порядок
+            assert_eq!(
+                visited,
+                vec![
+                    PathBuf::from("/etc/passwd"),
+                    PathBuf::from("/var/log/messages")
+                ],
+                "Should visit all files with correct full paths"
+            );
+        }
+
+        /// Test visiting a mixed structure with directories and files at different levels.
+        /// Tree:
+        ///   /home/user/document.txt
+        ///   /tmp/script.sh
+        ///   /var
+        /// Expected paths:
+        ///   "/home/user/document.txt"
+        ///   "/tmp/script.sh"
+        ///   "/var"
+        #[test]
+        fn test_visit_mixed_structure() {
+            let mut tree = FileTree::new();
+            tree.add_file("/home/user/document.txt").unwrap();
+            tree.add_file("/tmp/script.sh").unwrap();
+            tree.add_dir("/var").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            // Ожидаемый порядок посещения: лексикографический по именам файлов и директорий
+            assert_eq!(
+                visited,
+                vec![
+                    PathBuf::from("/home/user/document.txt"),
+                    PathBuf::from("/tmp/script.sh"),
+                    PathBuf::from("/var")
+                ],
+                "Should visit all items with correct full paths in lexical order"
+            );
+        }
+
+        /// Test that directories with children are not visited directly —
+        /// only their leaf descendants are visited.
+        /// Tree: /a/b/c (where c is empty)
+        /// Expected: only "/a/b/c" is visited, not "/a" or "/a/b".
+        #[test]
+        fn test_visit_only_leaf_directories() {
+            let mut tree = FileTree::new();
+            tree.add_dir("/a/b/c").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(
+                visited,
+                vec![PathBuf::from("/a/b/c")],
+                "Only leaf directories should be visited"
+            );
+        }
+
+        /// Test visiting a complex tree with multiple branches and depths.
+        /// Tree:
+        ///   /projects/rust/main.rs
+        ///   /projects/python/app.py
+        ///   /docs/README.md
+        ///   /temp
+        /// Expected: all files and leaf directories with full paths.
+        #[test]
+        fn test_visit_complex_tree() {
+            let mut tree = FileTree::new();
+            tree.add_file("/projects/rust/main.rs").unwrap();
+            tree.add_file("/projects/python/app.py").unwrap();
+            tree.add_file("/docs/README.md").unwrap();
+            tree.add_dir("/temp").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(
+                visited,
+                vec![
+                    PathBuf::from("/docs/README.md"),
+                    PathBuf::from("/projects/python/app.py"),
+                    PathBuf::from("/projects/rust/main.rs"),
+                    PathBuf::from("/temp")
+                ],
+                "Should visit all leaf items with full paths in correct order"
+            );
+        }
+
+        /// Test visiting a tree where a directory contains both files and subdirectories.
+        /// Tree:
+        ///   /mixed/file1.txt
+        ///   /mixed/subdir/file2.txt
+        /// Expected:
+        ///   "/mixed/file1.txt"
+        ///   "/mixed/subdir/file2.txt"
+        #[test]
+        fn test_visit_directory_with_files_and_subdirs() {
+            let mut tree = FileTree::new();
+            tree.add_file("/mixed/file1.txt").unwrap();
+            tree.add_file("/mixed/subdir/file2.txt").unwrap();
+            let mut visited = Vec::new();
+            tree.visit(|path| visited.push(path.to_path_buf()));
+            assert_eq!(
+                visited,
+                vec![
+                    PathBuf::from("/mixed/file1.txt"),
+                    PathBuf::from("/mixed/subdir/file2.txt")
+                ],
+                "Should visit both files and files in subdirectories with full paths"
+            );
         }
     }
 }
