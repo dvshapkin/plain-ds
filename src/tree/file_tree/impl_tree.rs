@@ -165,7 +165,7 @@ impl FileTree {
 
         // Second pass: add the file to the last directory
         let name = file_component.as_os_str().to_string_lossy().to_string();
-        parent_dir.files.insert(name);
+        parent_dir.insert_file(name);
 
         Ok(())
     }
@@ -197,13 +197,13 @@ impl FileTree {
         // Second pass: remove the file from the parent directory
         let file_name = file_component.as_os_str().to_string_lossy().to_string();
 
-        if !parent.files.contains(&file_name) {
+        if !parent.files_contains(&file_name) {
             // File doesn't exist — return error
             return Err(DSError::PathNotFound {
                 path: path.to_string_lossy().into_owned(),
             });
         }
-        parent.files.remove(&file_name);
+        parent.remove_file(&file_name);
 
         Ok(())
     }
@@ -235,13 +235,13 @@ impl FileTree {
         // Second pass: remove the directory from the parent
         let dir_name = dir_component.as_os_str().to_string_lossy().to_string();
 
-        if !parent.dirs.contains_key(&dir_name) {
+        if !parent.dirs_contains(&dir_name) {
             // Directory doesn't exist — return error
             return Err(DSError::PathNotFound {
                 path: path.to_string_lossy().into_owned(),
             });
         }
-        parent.dirs.remove(&dir_name);
+        parent.remove_dir(&dir_name);
 
         Ok(())
     }
@@ -256,10 +256,10 @@ impl FileTree {
     /// Visits all leaf elements in the tree and performs a `visitor` for each of them.
     pub fn visit(&self, mut visitor: impl FnMut(&Path)) {
         fn visit_recursive(parent: &Path, current: &DirNode, visitor: &mut impl FnMut(&Path)) {
-            for name in current.files.iter() {
+            for name in current.files_iter() {
                 visitor(parent.join(Path::new(name)).as_path())
             }
-            for (name, sub_childs) in current.dirs.iter() {
+            for (name, sub_childs) in current.dirs_iter() {
                 let parent = parent.join(Path::new(name));
                 if sub_childs.is_empty() {
                     visitor(&parent);
@@ -289,11 +289,12 @@ impl FileTree {
         // First pass: checks all parent directories
         for component in components {
             let name = component.as_os_str().to_string_lossy().to_string();
-            if !current.dirs.contains_key(&name) {
+            if let Some(next) = current.get_dir(&name) {
+                current = next;
+            } else {
                 is_found = false;
                 break;
             }
-            current = &current.dirs[&name];
         }
 
         // Second pass: checks the file in the last directory
@@ -301,7 +302,7 @@ impl FileTree {
             && is_found
         {
             let name = file_component.as_os_str().to_string_lossy().to_string();
-            if !current.files.contains(&name) {
+            if !current.files_contains(&name) {
                 is_found = false;
             }
         }
@@ -314,11 +315,8 @@ impl FileTree {
 
         for component in components {
             let name = component.as_os_str().to_string_lossy().to_string();
-
-            if !current.dirs.contains_key(&name) {
-                current.dirs.insert(name.clone(), DirNode::new());
-            }
-            current =  current.dirs.get_mut(&name).unwrap();  // safe unwrap
+            current.insert_dir(&name);
+            current =  current.get_dir_mut(&name).unwrap();  // safe unwrap
         }
 
         current
@@ -333,7 +331,7 @@ impl FileTree {
         for component in components {
             let name = component.as_os_str().to_string_lossy().to_string();
 
-            if let Some(dir) = current.dirs.get_mut(&name) {
+            if let Some(dir) = current.get_dir_mut(&name) {
                 current = dir;
             } else {
                 return Err(DSError::PathNotFound { path: full_path });
@@ -374,7 +372,7 @@ mod tests {
             assert!(tree.add_dir("/home").is_ok());
 
             // Verify that /home directory exists
-            assert!(tree.root.dirs.contains_key("home"));
+            assert!(tree.root.dirs_contains("home"));
         }
 
         /// Test adding nested directories.
@@ -386,9 +384,9 @@ mod tests {
             assert!(tree.add_dir(Path::new("/home/user/documents")).is_ok());
 
             // Verify the full path exists
-            let home = tree.root.dirs.get("home").unwrap();
-            let user = home.dirs.get("user").unwrap();
-            assert!(user.dirs.contains_key("documents"));
+            let home = tree.root.get_dir("home").unwrap();
+            let user = home.get_dir("user").unwrap();
+            assert!(user.dirs_contains("documents"));
         }
 
         /// Test adding directory with root path (should succeed without changes).
@@ -414,9 +412,9 @@ mod tests {
             assert!(tree.add_file(Path::new("/home/user/document.txt")).is_ok());
 
             // Verify file exists in the correct location
-            let home = tree.root.dirs.get("home").unwrap();
-            let user = home.dirs.get("user").unwrap();
-            assert!(user.files.contains("document.txt"));
+            let home = tree.root.get_dir("home").unwrap();
+            let user = home.get_dir("user").unwrap();
+            assert!(user.files_contains("document.txt"));
         }
 
         /// Test adding file creates necessary intermediate directories.
@@ -430,11 +428,10 @@ mod tests {
             // Verify full path was created
             let projects = tree
                 .root
-                .dirs
-                .get("projects")
+                .get_dir("projects")
                 .unwrap();
-            let rust = projects.dirs.get("rust").unwrap();
-            assert!(rust.files.contains("main.rs"));
+            let rust = projects.get_dir("rust").unwrap();
+            assert!(rust.files_contains("main.rs"));
         }
 
         /// Test error when adding non‑absolute path for directory.
@@ -478,11 +475,10 @@ mod tests {
             assert!(tree.add_file(Path::new("/tmp/script.sh")).is_ok());
 
             // Verify all files exist
-            let tmp = tree.root.dirs.get("tmp").unwrap();
-            let files = &tmp.files;
-            assert!(files.contains("file1.txt"));
-            assert!(files.contains("file2.txt"));
-            assert!(files.contains("script.sh"));
+            let tmp = tree.root.get_dir("tmp").unwrap();
+            assert!(tmp.files_contains("file1.txt"));
+            assert!(tmp.files_contains("file2.txt"));
+            assert!(tmp.files_contains("script.sh"));
         }
 
         /// Test idempotent behavior — adding the same path multiple times.
@@ -500,9 +496,9 @@ mod tests {
             assert!(tree.add_file(Path::new("/var/log/system.log")).is_ok());
 
             // Verify structure is correct
-            let var = tree.root.dirs.get("var").unwrap();
-            let log = var.dirs.get("log").unwrap();
-            assert!(log.files.contains("system.log"));
+            let var = tree.root.get_dir("var").unwrap();
+            let log = var.get_dir("log").unwrap();
+            assert!(log.files_contains("system.log"));
         }
 
         /// Test handling of paths with special characters.
@@ -516,10 +512,9 @@ mod tests {
             // Verify it was added correctly
             let special = tree
                 .root
-                .dirs
-                .get("special-@#$%")
+                .get_dir("special-@#$%")
                 .unwrap();
-            assert!(special.dirs.contains_key("test"));
+            assert!(special.dirs_contains("test"));
         }
 
         /// Test empty path handling.
