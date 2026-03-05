@@ -1,9 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use plain_ds::FileTree;
 
 fn main() {
     tree();
-    map();
+    //map();
 }
 
 fn tree() {
@@ -16,10 +16,10 @@ fn tree() {
 }
 
 fn map() {
-    let mut set = BTreeSet::new();
+    let mut set: BTreeMap<String, Option<&[u8]>> = BTreeMap::new();
     let prefix = "/my/very/very/long/prefix/to/the/files";
     for i in 0..1000 {
         let file_name = format!("{}/file_{:04}", prefix, i);
-        set.insert(file_name);
+        set.insert(file_name, None);
     }
 }
