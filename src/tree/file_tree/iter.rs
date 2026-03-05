@@ -1,16 +1,16 @@
 use std::collections::{btree_map, btree_set};
 use std::path::{Path, PathBuf};
 
-use super::childs::Childs;
+use super::node::DirNode;
 
 pub struct Iter<'a> {
     parent: &'a Path,
-    iter_dirs: btree_map::Iter<'a, String, Childs>,
+    iter_dirs: btree_map::Iter<'a, String, DirNode>,
     iter_files: btree_set::Iter<'a, String>,
 }
 
 impl<'a> Iter<'a> {
-    pub fn new(childs: &'a Childs) -> Self {
+    pub fn new(childs: &'a DirNode) -> Self {
         Self {
             parent: Path::new("/"),
             iter_dirs: childs.dirs.iter(),

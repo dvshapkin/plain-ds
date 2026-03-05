@@ -4,16 +4,16 @@ use std::path::PathBuf;
 use super::iter::Iter;
 
 #[derive(Debug, Default)]
-pub struct Childs {
-    pub dirs: Box<BTreeMap<String, Childs>>,
-    pub files: Box<BTreeSet<String>>,
+pub struct DirNode {
+    pub dirs: BTreeMap<String, DirNode>,
+    pub files: BTreeSet<String>,
 }
 
-impl Childs {
+impl DirNode {
     pub fn new() -> Self {
         Self {
-            dirs: Box::new(BTreeMap::new()),
-            files: Box::new(BTreeSet::new())
+            dirs: BTreeMap::new(),
+            files: BTreeSet::new()
         }
     }
 
@@ -43,6 +43,6 @@ mod tests {
 
     #[test]
     fn test_node() {
-        println!("Childs = {}", size_of::<Childs>());
+        println!("Childs = {}", size_of::<DirNode>());
     }
 }

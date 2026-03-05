@@ -24,7 +24,5 @@ list = []
 tree = []
 full = ["list", "tree"]
 
-[dependencies]
-
 [dev-dependencies]
 drop-tracker = "0.1"
