@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 use plain_ds::FileTree;
 
 fn main() {
@@ -6,6 +7,7 @@ fn main() {
     //empty_tree();
     //map();
     //empty_map();
+    //set();
 }
 
 fn tree() {
@@ -20,6 +22,17 @@ fn tree() {
 fn empty_tree() {
     let tree = FileTree::new();
     println!("{}", tree.is_empty())
+}
+
+fn set() {
+    let mut set: BTreeSet<String> = BTreeSet::new();
+    let prefix = "/my/very/very/long/prefix/to/the/files";
+    for i in 0..1000 {
+        let components = Path::new(prefix).components();
+        assert_eq!(components.count(), 9);
+        let file_name = format!("{}/file_{:04}", prefix, i);
+        set.insert(file_name);
+    }
 }
 
 fn map() {

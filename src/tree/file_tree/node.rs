@@ -1,6 +1,6 @@
 use std::collections::{btree_map, btree_set, BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::ptr;
+use std::{alloc, ptr};
 
 #[derive(Debug, Default)]
 pub struct DirNode {
@@ -68,14 +68,14 @@ impl DirNode {
 
     pub fn insert_file<T: Into<String>>(&mut self, name: T) {
         if self.files.is_null() {
-            self.files = Box::into_raw(Box::new(BTreeSet::new()));
+            self.files = Self::alloc(BTreeSet::new());
         }
         unsafe { (*self.files).insert(name.into()) };
     }
 
     pub fn insert_dir<T: Into<String>>(&mut self, name: T) {
         if self.dirs.is_null() {
-            self.dirs = Box::into_raw(Box::new(BTreeMap::new()));
+            self.dirs = Self::alloc(BTreeMap::new());
         }
         let name = name.into();
         unsafe {
@@ -131,6 +131,13 @@ impl DirNode {
         if !self.files.is_null() {
             unsafe { (*self.files).clear() };
         }
+    }
+
+    fn alloc<T>(value: T) -> *mut T {
+        let ptr = unsafe { alloc::alloc(alloc::Layout::for_value(&value)) as *mut T };
+        unsafe { ptr.write(value) };
+        ptr
+        //Box::into_raw(Box::new(value))
     }
 }
 

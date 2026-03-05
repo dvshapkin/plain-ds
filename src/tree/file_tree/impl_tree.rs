@@ -126,11 +126,8 @@ impl FileTree {
             return Ok(());
         }
 
-        // Skip RootDir
-        let components: Vec<_> = path.components().skip(1).collect();
-
         // Create all necessary directories
-        let _ = self.ensure_dirs(&components);
+        let _ = self.ensure_dirs(path);
 
         Ok(())
     }
@@ -156,17 +153,18 @@ impl FileTree {
                 path: path.to_owned(),
             });
         }
-
-        // Skip RootDir
-        let mut components: Vec<_> = path.components().skip(1).collect();
-        let file_component = components.pop().ok_or(DSError::EmptyPath)?;
+        
+        let (dir, file) = utils::split_path(path);
 
         // First pass: create all necessary directories
-        let parent_dir = self.ensure_dirs(&components);
+        if let Some(dir) = dir {
+            let parent_dir = self.ensure_dirs(dir);
 
-        // Second pass: add the file to the last directory
-        let name = utils::path_comp_to_str(&file_component);
-        parent_dir.insert_file(name);
+            // Second pass: add the file to the last directory
+            if let Some(file) = file {
+                parent_dir.insert_file(file);
+            }
+        }
 
         Ok(())
     }
@@ -311,9 +309,11 @@ impl FileTree {
         is_found
     }
 
-    fn ensure_dirs(&mut self, components: &[Component<'_>]) -> &mut DirNode {
+    fn ensure_dirs(&mut self, path: &Path) -> &mut DirNode {
         let mut current = &mut self.root;
 
+        // Skip RootDir
+        let components = path.components().skip(1);
         for component in components {
             let name = utils::path_comp_to_str(&component);
             current.insert_dir(name);
