@@ -3,7 +3,9 @@ use plain_ds::FileTree;
 
 fn main() {
     tree();
+    //empty_tree();
     //map();
+    //empty_map();
 }
 
 fn tree() {
@@ -15,6 +17,11 @@ fn tree() {
     }
 }
 
+fn empty_tree() {
+    let tree = FileTree::new();
+    println!("{}", tree.is_empty())
+}
+
 fn map() {
     let mut set: BTreeMap<String, Option<&[u8]>> = BTreeMap::new();
     let prefix = "/my/very/very/long/prefix/to/the/files";
@@ -22,4 +29,9 @@ fn map() {
         let file_name = format!("{}/file_{:04}", prefix, i);
         set.insert(file_name, None);
     }
+}
+
+fn empty_map() {
+    let map: BTreeMap<String, Option<&[u8]>> = BTreeMap::new();
+    println!("{}", map.len())
 }

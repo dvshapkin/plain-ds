@@ -1,7 +1,8 @@
 //! This module contains file-tree implementation.
 
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 
+use crate::core::utils;
 use super::node::DirNode;
 use crate::{DSError, Result};
 
@@ -66,12 +67,12 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
             return Err(DSError::NotFile {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
 
@@ -92,7 +93,7 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
@@ -118,7 +119,7 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
@@ -147,12 +148,12 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
             return Err(DSError::NotFile {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
 
@@ -164,7 +165,7 @@ impl FileTree {
         let parent_dir = self.ensure_dirs(&components);
 
         // Second pass: add the file to the last directory
-        let name = file_component.as_os_str().to_string_lossy().to_string();
+        let name = utils::path_comp_to_str(&file_component);
         parent_dir.insert_file(name);
 
         Ok(())
@@ -178,12 +179,12 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
             return Err(DSError::NotFile {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
 
@@ -195,12 +196,12 @@ impl FileTree {
         let parent = self.find_dir(&components)?;
 
         // Second pass: remove the file from the parent directory
-        let file_name = file_component.as_os_str().to_string_lossy().to_string();
+        let file_name = utils::path_comp_to_str(&file_component);
 
         if !parent.files_contains(&file_name) {
             // File doesn't exist — return error
             return Err(DSError::PathNotFound {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         parent.remove_file(&file_name);
@@ -216,12 +217,12 @@ impl FileTree {
         }
         if !path.is_absolute() {
             return Err(DSError::NotAbsolutePath {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         if path.as_os_str() == "/" {
             return Err(DSError::NotFile {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
 
@@ -233,12 +234,12 @@ impl FileTree {
         let parent = self.find_dir(&components)?;
 
         // Second pass: remove the directory from the parent
-        let dir_name = dir_component.as_os_str().to_string_lossy().to_string();
+        let dir_name = utils::path_comp_to_str(&dir_component);
 
         if !parent.dirs_contains(&dir_name) {
             // Directory doesn't exist — return error
             return Err(DSError::PathNotFound {
-                path: path.to_string_lossy().into_owned(),
+                path: path.to_owned(),
             });
         }
         parent.remove_dir(&dir_name);
@@ -288,8 +289,8 @@ impl FileTree {
 
         // First pass: checks all parent directories
         for component in components {
-            let name = component.as_os_str().to_string_lossy().to_string();
-            if let Some(next) = current.get_dir(&name) {
+            let name = utils::path_comp_to_str(&component);
+            if let Some(next) = current.get_dir(name) {
                 current = next;
             } else {
                 is_found = false;
@@ -301,8 +302,8 @@ impl FileTree {
         if let Some(file_component) = file_component
             && is_found
         {
-            let name = file_component.as_os_str().to_string_lossy().to_string();
-            if !current.files_contains(&name) {
+            let name = utils::path_comp_to_str(&file_component);
+            if !current.files_contains(name) {
                 is_found = false;
             }
         }
@@ -314,9 +315,9 @@ impl FileTree {
         let mut current = &mut self.root;
 
         for component in components {
-            let name = component.as_os_str().to_string_lossy().to_string();
-            current.insert_dir(&name);
-            current =  current.get_dir_mut(&name).unwrap();  // safe unwrap
+            let name = utils::path_comp_to_str(&component);
+            current.insert_dir(name);
+            current =  current.get_dir_mut(name).unwrap();  // safe unwrap
         }
 
         current
@@ -329,9 +330,9 @@ impl FileTree {
         let mut current = &mut self.root;
 
         for component in components {
-            let name = component.as_os_str().to_string_lossy().to_string();
+            let name = utils::path_comp_to_str(component);
 
-            if let Some(dir) = current.get_dir_mut(&name) {
+            if let Some(dir) = current.get_dir_mut(name) {
                 current = dir;
             } else {
                 return Err(DSError::PathNotFound { path: full_path });
@@ -342,17 +343,12 @@ impl FileTree {
     }
 
     /// Helper method to build a string path from components for error reporting.
-    fn build_path(&self, components: &[Component<'_>]) -> String {
-        let mut path = String::from("/");
+    fn build_path(&self, components: &[Component<'_>]) -> PathBuf {
+        let mut pb = PathBuf::from("/");
         for component in components {
-            path.push_str(component.as_os_str().to_string_lossy().as_ref());
-            path.push('/');
+            pb.push(component);
         }
-        // Remove trailing slash if path is not root
-        if path.len() > 1 {
-            path.pop();
-        }
-        path
+        pb
     }
 }
 
@@ -443,7 +439,7 @@ mod tests {
             let result = tree.add_dir(Path::new("relative/path"));
             assert!(result.is_err());
             if let Err(DSError::NotAbsolutePath { path }) = result {
-                assert_eq!(path, "relative/path");
+                assert_eq!(path, PathBuf::from("relative/path"));
             } else {
                 panic!("Expected NotAbsolutePath error");
             }
@@ -458,7 +454,7 @@ mod tests {
             let result = tree.add_file(Path::new("document.txt"));
             assert!(result.is_err());
             if let Err(DSError::NotAbsolutePath { path }) = result {
-                assert_eq!(path, "document.txt");
+                assert_eq!(path, PathBuf::from("document.txt"));
             } else {
                 panic!("Expected NotAbsolutePath error");
             }
@@ -546,7 +542,7 @@ mod tests {
             assert_eq!(
                 tree.contains_file("/"),
                 Err(DSError::NotFile {
-                    path: "/".to_string()
+                    path: PathBuf::from("/")
                 })
             ); // Root can be considered as existing
         }
@@ -627,7 +623,7 @@ mod tests {
             let result = tree.contains_dir("relative/path");
             assert!(result.is_err());
             if let Err(DSError::NotAbsolutePath { path }) = result {
-                assert_eq!(path, "relative/path");
+                assert_eq!(path, PathBuf::from("relative/path"));
             } else {
                 panic!("Expected NotAbsolutePath error");
             }
@@ -784,7 +780,7 @@ mod tests {
             let result = tree.remove_file("relative/path/file.txt");
             assert!(result.is_err());
             if let Err(DSError::NotAbsolutePath { path }) = result {
-                assert_eq!(path, "relative/path/file.txt");
+                assert_eq!(path, PathBuf::from("relative/path/file.txt"));
             } else {
                 panic!("Expected NotAbsolutePath error");
             }
@@ -798,7 +794,7 @@ mod tests {
             let result = tree.remove_file("/");
             assert!(result.is_err());
             if let Err(DSError::NotFile { path }) = result {
-                assert_eq!(path, "/");
+                assert_eq!(path, PathBuf::from("/"));
             } else {
                 panic!("Expected NotFile error for root path");
             }
@@ -902,7 +898,7 @@ mod tests {
             let result = tree.remove_dir("/");
             assert!(result.is_err());
             if let Err(DSError::NotFile { path }) = result {
-                assert_eq!(path, "/");
+                assert_eq!(path, PathBuf::from("/"));
             } else {
                 panic!("Expected NotFile error for root path");
             }
@@ -1016,7 +1012,7 @@ mod tests {
             let result = tree.find_dir(&components);
             assert!(result.is_err());
             if let Err(DSError::PathNotFound { path }) = result {
-                assert_eq!(path, "/home/nonexistent");
+                assert_eq!(path, PathBuf::from("/home/nonexistent"));
             } else {
                 panic!("Expected PathNotFound error");
             }
@@ -1051,7 +1047,7 @@ mod tests {
             let components: Vec<_> = Path::new("/home/user").components().skip(1).collect();
 
             let path = tree.build_path(&components);
-            assert_eq!(path, "/home/user");
+            assert_eq!(path, PathBuf::from("/home/user"));
         }
 
         /// Test building root path.
@@ -1061,7 +1057,7 @@ mod tests {
             let empty_components: Vec<Component<'_>> = vec![];
 
             let path = tree.build_path(&empty_components);
-            assert_eq!(path, "/");
+            assert_eq!(path, PathBuf::from("/"));
         }
 
         /// Test building complex path with special characters.
@@ -1074,7 +1070,7 @@ mod tests {
                 .collect();
 
             let path = tree.build_path(&components);
-            assert_eq!(path, "/special-@#$%/test/path");
+            assert_eq!(path, PathBuf::from("/special-@#$%/test/path"));
         }
     }
 
