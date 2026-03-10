@@ -25,7 +25,7 @@ cargo add plain-ds
 
 ## What's new in last version?
 
-## [0.3.0] - 2026-03-02
+## [0.3.0] - 2026-03-10
 
 ### Added
 - `FileTree` implementation

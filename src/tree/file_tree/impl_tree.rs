@@ -76,11 +76,10 @@ impl FileTree {
             });
         }
 
-        // Skip RootDir
-        let mut components: Vec<_> = path.components().skip(1).collect();
-        let file_component = components.pop().ok_or(DSError::EmptyPath)?;
+        let (dir, file) = utils::split_path(path);
+        let dir = dir.ok_or(DSError::WrongPath { path: path.to_owned() })?;
 
-        Ok(self.check_path(&components, Some(file_component)))
+        Ok(self.check_path(dir, file))
     }
 
     /// Checks if `path` is contained in the tree as directory.
@@ -100,10 +99,7 @@ impl FileTree {
             return Ok(true);
         }
 
-        // Skip RootDir
-        let components: Vec<_> = path.components().skip(1).collect();
-
-        Ok(self.check_path(&components, None))
+        Ok(self.check_path(path, None))
     }
 
     /// Add directory into tree.
@@ -275,8 +271,8 @@ impl FileTree {
 
     fn check_path(
         &self,
-        components: &[Component<'_>],
-        file_component: Option<Component<'_>>,
+        dir_path: &Path,
+        file_name: Option<&str>,
     ) -> bool {
         if self.is_empty() {
             return false;
@@ -286,6 +282,8 @@ impl FileTree {
         let mut is_found = true;
 
         // First pass: checks all parent directories
+        // Skip RootDir
+        let components = dir_path.components().skip(1);
         for component in components {
             let name = utils::path_comp_to_str(&component);
             if let Some(next) = current.get_dir(name) {
@@ -297,11 +295,8 @@ impl FileTree {
         }
 
         // Second pass: checks the file in the last directory
-        if let Some(file_component) = file_component
-            && is_found
-        {
-            let name = utils::path_comp_to_str(&file_component);
-            if !current.files_contains(name) {
+        if let Some(file_name) = file_name && is_found {
+            if !current.files_contains(file_name) {
                 is_found = false;
             }
         }
