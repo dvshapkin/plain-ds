@@ -15,6 +15,9 @@ repository = "https://github.com/dvshapkin/plain-ds"
 keywords = ["data-structures", "list", "tree"]
 categories = ["data-structures"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [lib]
 doctest = false
 
