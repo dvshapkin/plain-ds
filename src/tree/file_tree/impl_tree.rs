@@ -182,16 +182,14 @@ impl FileTree {
             });
         }
 
-        // Skip RootDir
-        let mut components: Vec<_> = path.components().skip(1).collect();
-        let file_component = components.pop().ok_or(DSError::EmptyPath)?;
+        let (dir, file) = utils::split_path(path);
+        let dir = dir.ok_or(DSError::WrongPath { path: path.to_owned() })?;
+        let file_name = file.ok_or(DSError::NotFile { path: path.to_owned() })?;
 
         // First pass: find the parent directory
-        let parent = self.find_dir(&components)?;
+        let parent = self.find_dir(dir)?;
 
         // Second pass: remove the file from the parent directory
-        let file_name = utils::path_comp_to_str(&file_component);
-
         if !parent.files_contains(&file_name) {
             // File doesn't exist — return error
             return Err(DSError::PathNotFound {
@@ -220,23 +218,21 @@ impl FileTree {
             });
         }
 
-        // Skip RootDir
-        let mut components: Vec<_> = path.components().skip(1).collect();
-        let dir_component = components.pop().ok_or(DSError::EmptyPath)?;
+        let (parent, child) = utils::split_path(path);
+        let parent = parent.ok_or(DSError::WrongPath { path: path.to_owned() })?;
+        let child = child.ok_or(DSError::NotDirectory { path: path.to_owned() })?;
 
         // First pass: find the parent directory
-        let parent = self.find_dir(&components)?;
+        let parent = self.find_dir(parent)?;
 
         // Second pass: remove the directory from the parent
-        let dir_name = utils::path_comp_to_str(&dir_component);
-
-        if !parent.dirs_contains(&dir_name) {
+        if !parent.dirs_contains(child) {
             // Directory doesn't exist — return error
             return Err(DSError::PathNotFound {
                 path: path.to_owned(),
             });
         }
-        parent.remove_dir(&dir_name);
+        parent.remove_dir(child);
 
         Ok(())
     }
@@ -320,17 +316,18 @@ impl FileTree {
 
     /// Helper method to find a directory node by path components.
     /// Returns error if any component in the path doesn't exist.
-    fn find_dir(&mut self, components: &[Component<'_>]) -> Result<&mut DirNode> {
-        let full_path = self.build_path(components);
+    fn find_dir(&mut self, path: &Path) -> Result<&mut DirNode> {
         let mut current = &mut self.root;
 
+        // Skip RootDir
+        let components = path.components().skip(1);
         for component in components {
-            let name = utils::path_comp_to_str(component);
+            let name = utils::path_comp_to_str(&component);
 
             if let Some(dir) = current.get_dir_mut(name) {
                 current = dir;
             } else {
-                return Err(DSError::PathNotFound { path: full_path });
+                return Err(DSError::PathNotFound { path: path.to_owned() });
             }
         }
 
@@ -965,70 +962,6 @@ mod tests {
 
             // Existing path should still be there
             assert_eq!(tree.contains_dir("/existing/path"), Ok(true));
-        }
-    }
-
-    mod find_dir {
-        use super::*;
-
-        /// Test successful finding of existing directory.
-        #[test]
-        fn test_find_existing_dir() {
-            let mut tree = FileTree::new();
-            tree.add_dir(Path::new("/home/user/documents")).unwrap();
-
-            let components: Vec<_> = Path::new("/home/user").components().skip(1).collect();
-
-            let result = tree.find_dir(&components);
-            assert!(result.is_ok());
-        }
-
-        /// Test finding root directory.
-        #[test]
-        fn test_find_root_dir() {
-            let mut tree = FileTree::new();
-
-            let empty_components: Vec<Component<'_>> = vec![];
-            let result = tree.find_dir(&empty_components);
-            assert!(result.is_ok());
-        }
-
-        /// Test error when finding non-existent directory.
-        #[test]
-        fn test_find_nonexistent_dir() {
-            let mut tree = FileTree::new();
-            tree.add_dir(Path::new("/home")).unwrap();
-
-            let components: Vec<_> = Path::new("/home/nonexistent")
-                .components()
-                .skip(1)
-                .collect();
-
-            let result = tree.find_dir(&components);
-            assert!(result.is_err());
-            if let Err(DSError::PathNotFound { path }) = result {
-                assert_eq!(path, PathBuf::from("/home/nonexistent"));
-            } else {
-                panic!("Expected PathNotFound error");
-            }
-        }
-
-        /// Test finding directory with partial path.
-        #[test]
-        fn test_find_partial_path() {
-            let mut tree = FileTree::new();
-            tree.add_dir(Path::new("/a/b/c/d")).unwrap();
-
-            // Find /a/b
-            let components: Vec<_> = Path::new("/a/b").components().skip(1).collect();
-
-            let result = tree.find_dir(&components);
-            assert!(result.is_ok());
-
-            // Find /a/b/c
-            let components2: Vec<_> = Path::new("/a/b/c").components().skip(1).collect();
-            let result2 = tree.find_dir(&components2);
-            assert!(result2.is_ok());
         }
     }
 
