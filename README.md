@@ -14,7 +14,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-plain-ds = "0.2"
+plain-ds = "0.3"
 ```
 
 Or via `cargo add`:
@@ -25,10 +25,14 @@ cargo add plain-ds
 
 ## What's new in last version?
 
-## [0.2.2] - 2026-02-27
+## [0.3.0] - 2026-03-10
+
+### Added
+- `FileTree` implementation
+- conditional compilation (features: list, tree, full)
 
 ### Fixed
-- fixes visibility of some methods
+- known bugs
 
 ## Overview
 
@@ -44,6 +48,7 @@ and efficiency of existing DS.
 - **Clarity**: Detailed error messages and up-to-date documentation.
 
 ## What has already been implemented?
+- `FileTree` implementation
 - `SinglyLinkedList` - singly-linked list implementation
 - `SortedList` - sorted list implementation
 

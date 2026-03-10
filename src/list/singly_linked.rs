@@ -2,10 +2,10 @@
 
 use std::ptr;
 
-use crate::list::api::List;
+use super::api::List;
+use super::common::ListCommon;
+use super::node_one_link::{Node, merge_sort};
 use crate::core::{DSError, Result};
-use crate::core::{Node, merge_sort};
-use crate::list::common::ListCommon;
 
 /// A singly-linked list implementation with efficient insertion at the front and back.
 ///
@@ -42,7 +42,7 @@ impl<T> SinglyLinkedList<T> {
 
     /// Creates list from slice.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn from_slice(slice: &[T]) -> Self
     where
         T: Clone,
@@ -56,7 +56,7 @@ impl<T> SinglyLinkedList<T> {
 
     /// Collect list values into a vector.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn to_vec(&self) -> Vec<T>
     where
         T: Clone,
@@ -66,7 +66,7 @@ impl<T> SinglyLinkedList<T> {
 
     /// Adds a new node to the front of the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     pub fn push_front(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
         if self.is_empty() {
@@ -81,7 +81,7 @@ impl<T> SinglyLinkedList<T> {
     /// Insert a new node at the specified location in the list.
     /// Error returns, if the index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn insert(&mut self, index: usize, payload: T) -> Result<()> {
         if index > self.state.size {
             return Err(DSError::IndexOutOfBounds {
@@ -121,7 +121,7 @@ impl<T> SinglyLinkedList<T> {
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialEq,
@@ -131,7 +131,7 @@ impl<T> SinglyLinkedList<T> {
 
     /// Sorts the list in ascending order using merge sort algorithm.
     ///
-    /// Efficiency: O(n log n)
+    /// **Efficiency**: O(n log n)
     ///
     /// Space complexity: O(log n) due to recursion stack
     pub fn sort(&mut self)
@@ -182,21 +182,21 @@ impl<T> SinglyLinkedList<T> {
 impl<'a, T: 'a> List<'a, T> for SinglyLinkedList<T> {
     /// Returns list size.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn len(&self) -> usize {
         self.state.len()
     }
 
     /// Returns the payload value of the first node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn head(&self) -> Option<&T> {
         self.state.head()
     }
 
     /// Returns the payload value of the last node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn last(&self) -> Option<&T> {
         self.state.last()
     }
@@ -218,21 +218,21 @@ impl<'a, T: 'a> List<'a, T> for SinglyLinkedList<T> {
 
     /// Adds a new node to the end of the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn push(&mut self, payload: T) {
         self.state.push_back(payload);
     }
 
     /// Removes a node from the end of the list and returns its payload value.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn pop_back(&mut self) -> Option<T> {
         self.state.pop_back()
     }
 
     /// Removes a node from the front of the list and returns its payload value.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn pop_front(&mut self) -> Option<T> {
         self.state.pop_front()
     }
@@ -240,12 +240,11 @@ impl<'a, T: 'a> List<'a, T> for SinglyLinkedList<T> {
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn remove(&mut self, index: usize) -> Result<T> {
         self.state.remove(index)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -263,7 +262,11 @@ mod tests {
     #[test]
     fn test_from_slice() {
         let list = SinglyLinkedList::from_slice(&[2, 1, 5, 4, 3]);
-        assert_eq!(list.to_vec(), [2, 1, 5, 4, 3], "The order of elements must be preserved");
+        assert_eq!(
+            list.to_vec(),
+            [2, 1, 5, 4, 3],
+            "The order of elements must be preserved"
+        );
     }
 
     mod get {
@@ -675,7 +678,8 @@ mod tests {
             assert_eq!(list.head(), Some(&1), "incorrect head after push_front()");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -685,7 +689,8 @@ mod tests {
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 
@@ -723,7 +728,8 @@ mod tests {
             assert_eq!(list.head(), Some(&2), "incorrect head payload");
             assert_eq!(list.last(), Some(&1), "incorrect last after push_front()");
             assert_ne!(
-                list.len(), 0,
+                list.len(),
+                0,
                 "is_empty() returns `true` after push_front()"
             );
 

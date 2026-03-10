@@ -1,16 +1,16 @@
 use super::Node;
 
-/// Merge sort implementation for linked single_linked nodes
+/// Merge sort implementation for single linked nodes
 pub fn merge_sort<T>(head: *mut Node<T>) -> *mut Node<T>
 where
     T: PartialOrd + Default,
 {
-    // Base case: empty single_linked or single node
+    // Base case: empty or single node
     if head.is_null() || unsafe { (*head).next.is_null() } {
         return head;
     }
 
-    // Split the single_linked into two halves
+    // Split the list into two halves
     let (left, right) = split_list(head);
 
     // Recursively sort both halves
@@ -21,7 +21,7 @@ where
     merge(left_sorted, right_sorted)
 }
 
-/// Splits the single_linked into two approximately equal halves
+/// Splits the list into two approximately equal halves
 fn split_list<T>(head: *mut Node<T>) -> (*mut Node<T>, *mut Node<T>) {
     let mut slow = head;
     let mut fast = unsafe { (*head).next };
@@ -42,7 +42,7 @@ fn split_list<T>(head: *mut Node<T>) -> (*mut Node<T>, *mut Node<T>) {
     (head, right_head)
 }
 
-/// Merges two sorted linked lists into one sorted single_linked
+/// Merges two sorted linked lists into one sorted list
 fn merge<T>(mut left: *mut Node<T>, mut right: *mut Node<T>) -> *mut Node<T>
 where
     T: PartialOrd + Default,

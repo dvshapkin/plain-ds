@@ -1,6 +1,6 @@
-use crate::core::Node;
-use crate::list::api::List;
-use crate::list::common::ListCommon;
+use super::api::List;
+use super::common::ListCommon;
+use super::node_one_link::Node;
 
 /// An ordered collection that maintains its elements in sorted order.
 ///
@@ -36,7 +36,7 @@ impl<T> SortedList<T> {
 
     /// Creates list from slice.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn from_slice(slice: &[T]) -> Self
     where
         T: Clone + PartialOrd,
@@ -50,7 +50,7 @@ impl<T> SortedList<T> {
 
     /// Collect list values into a vector.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn to_vec(&self) -> Vec<T>
     where
         T: Clone,
@@ -61,7 +61,7 @@ impl<T> SortedList<T> {
     /// Finds the first node whose payload satisfies the predicate and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     pub fn find_if(&self, predicate: impl Fn(&T) -> bool) -> Option<usize>
     where
         T: PartialOrd,
@@ -97,21 +97,21 @@ where
 {
     /// Returns list size.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn len(&self) -> usize {
         self.state.len()
     }
 
     /// Returns the payload value of the first node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn head(&self) -> Option<&T> {
         self.state.head()
     }
 
     /// Returns the payload value of the last node in the list.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn last(&self) -> Option<&T> {
         self.state.last()
     }
@@ -133,7 +133,7 @@ where
 
     /// Adds a new node to the list according to the sort order.
     ///
-    /// Efficiency: O(n) at worst
+    /// **Efficiency**: O(n) at worst
     fn push(&mut self, payload: T) {
         let ptr = Box::into_raw(Box::new(Node::new(payload)));
 
@@ -163,14 +163,14 @@ where
 
     /// Removes a node from the end of the list and returns its payload value.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn pop_back(&mut self) -> Option<T> {
         self.state.pop_back()
     }
 
     /// Removes a node from the front of the list and returns its payload value.
     ///
-    /// Efficiency: O(1)
+    /// **Efficiency**: O(1)
     fn pop_front(&mut self) -> Option<T> {
         self.state.pop_front()
     }
@@ -178,7 +178,7 @@ where
     /// Removes a node from the specified location in the list.
     /// Error returns, if the index out of bounds.
     ///
-    /// Efficiency: O(n)
+    /// **Efficiency**: O(n)
     fn remove(&mut self, index: usize) -> crate::Result<T> {
         self.state.remove(index)
     }
@@ -186,9 +186,10 @@ where
     /// Finds the first node whose payload is equal to the given `value` and returns its index.
     /// Returns `None` if there is no such node.
     ///
-    /// Efficiency: O(n) at worst
+    /// **Efficiency**: O(n) at worst
     fn find(&self, value: &T) -> Option<usize>
-    where T: PartialEq<T>
+    where
+        T: PartialEq<T>,
     {
         for (index, payload) in self.iter().enumerate() {
             if payload == value {
@@ -215,8 +216,8 @@ mod tests {
     }
 
     mod push {
-        use std::cmp::Ordering;
         use super::*;
+        use std::cmp::Ordering;
 
         #[test]
         fn test_push_empty_list() {
@@ -225,8 +226,15 @@ mod tests {
             list.push(42);
 
             assert_eq!(list.len(), 1, "list should have one element after push");
-            assert_eq!(list.to_vec(), vec![42], "single element should be correctly inserted");
-            assert_eq!(list.state.head, list.state.last, "head and last should point to the same node in single-element list");
+            assert_eq!(
+                list.to_vec(),
+                vec![42],
+                "single element should be correctly inserted"
+            );
+            assert_eq!(
+                list.state.head, list.state.last,
+                "head and last should point to the same node in single-element list"
+            );
         }
 
         #[test]
@@ -236,9 +244,17 @@ mod tests {
             list.push(1);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 4], "element smaller than all existing should be inserted at beginning");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 4],
+                "element smaller than all existing should be inserted at beginning"
+            );
             unsafe {
-                assert_eq!((*list.state.head).payload, 1, "head should point to newly inserted smallest element");
+                assert_eq!(
+                    (*list.state.head).payload,
+                    1,
+                    "head should point to newly inserted smallest element"
+                );
             }
         }
 
@@ -249,9 +265,17 @@ mod tests {
             list.push(4);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 4], "element larger than all existing should be inserted at end");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 4],
+                "element larger than all existing should be inserted at end"
+            );
             unsafe {
-                assert_eq!((*list.state.last).payload, 4, "last should point to newly inserted largest element");
+                assert_eq!(
+                    (*list.state.last).payload,
+                    4,
+                    "last should point to newly inserted largest element"
+                );
             }
         }
 
@@ -262,7 +286,11 @@ mod tests {
             list.push(2);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 5], "element should be inserted in correct middle position");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 5],
+                "element should be inserted in correct middle position"
+            );
         }
 
         #[test]
@@ -272,7 +300,11 @@ mod tests {
             list.push(3);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 3, 3, 5], "duplicate values should be inserted and preserved");
+            assert_eq!(
+                values,
+                vec![1, 3, 3, 5],
+                "duplicate values should be inserted and preserved"
+            );
         }
 
         #[test]
@@ -287,7 +319,11 @@ mod tests {
             list.push(4);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![1, 2, 3, 4, 5], "elements inserted in random order should result in sorted list");
+            assert_eq!(
+                values,
+                vec![1, 2, 3, 4, 5],
+                "elements inserted in random order should result in sorted list"
+            );
         }
 
         #[test]
@@ -317,7 +353,11 @@ mod tests {
             let values = list.to_vec();
             assert_eq!(
                 values,
-                vec!["apple".to_string(), "banana".to_string(), "zebra".to_string()],
+                vec![
+                    "apple".to_string(),
+                    "banana".to_string(),
+                    "zebra".to_string()
+                ],
                 "strings should be sorted alphabetically"
             );
         }
@@ -331,7 +371,11 @@ mod tests {
             list.push(0);
 
             let values = list.to_vec();
-            assert_eq!(values, vec![-1_000_000, 0, 1_000_000], "large positive and negative numbers should be sorted correctly");
+            assert_eq!(
+                values,
+                vec![-1_000_000, 0, 1_000_000],
+                "large positive and negative numbers should be sorted correctly"
+            );
         }
 
         #[test]
@@ -368,7 +412,11 @@ mod tests {
             list.push(Point { x: 2, y: 8 });
 
             let values = list.to_vec();
-            assert_eq!(values.len(), 3, "custom Ord type should be handled correctly");
+            assert_eq!(
+                values.len(),
+                3,
+                "custom Ord type should be handled correctly"
+            );
             assert_eq!(values[0].x, 1, "should be sorted by x coordinate");
             assert_eq!(values[1].x, 2, "should be sorted by x coordinate");
             assert_eq!(values[2].x, 3, "should be sorted by x coordinate");
@@ -404,7 +452,11 @@ mod tests {
             let list = create_list_from_slice(&[10, 20, 30, 40, 50]);
             let result = list.find(&30);
 
-            assert_eq!(result, Some(2), "should find element in the middle and return correct index");
+            assert_eq!(
+                result,
+                Some(2),
+                "should find element in the middle and return correct index"
+            );
         }
 
         #[test]
@@ -412,7 +464,11 @@ mod tests {
             let list = create_list_from_slice(&[5, 10, 15, 20]);
             let result = list.find(&20);
 
-            assert_eq!(result, Some(3), "should find element at the end and return correct index");
+            assert_eq!(
+                result,
+                Some(3),
+                "should find element at the end and return correct index"
+            );
         }
 
         #[test]
@@ -420,7 +476,10 @@ mod tests {
             let list = create_list_from_slice(&[10, 20, 30, 40]);
             let result = list.find(&5);
 
-            assert_eq!(result, None, "should return None when searching for element smaller than all elements");
+            assert_eq!(
+                result, None,
+                "should return None when searching for element smaller than all elements"
+            );
         }
 
         #[test]
@@ -429,7 +488,10 @@ mod tests {
             let result = list.find(&50);
 
             // Early exit should trigger here — first check fails, then payload > value → break
-            assert_eq!(result, None, "should return None and use early exit for element larger than all");
+            assert_eq!(
+                result, None,
+                "should return None and use early exit for element larger than all"
+            );
         }
 
         #[test]
@@ -438,7 +500,10 @@ mod tests {
             let result = list.find(&25);
 
             // Should stop at 30 (30 > 25) without checking 40
-            assert_eq!(result, None, "should use early exit when value would be between existing elements");
+            assert_eq!(
+                result, None,
+                "should use early exit when value would be between existing elements"
+            );
         }
 
         #[test]
@@ -446,7 +511,11 @@ mod tests {
             let list = create_list_from_slice(&[1, 2, 2, 3, 2]);
             let result = list.find(&2);
 
-            assert_eq!(result, Some(1), "should return index of first occurrence when duplicates exist");
+            assert_eq!(
+                result,
+                Some(1),
+                "should return index of first occurrence when duplicates exist"
+            );
         }
 
         #[test]
@@ -454,7 +523,11 @@ mod tests {
             let list = create_list_from_slice(&[42]);
             let result = list.find(&42);
 
-            assert_eq!(result, Some(0), "should find matching element in single-element list");
+            assert_eq!(
+                result,
+                Some(0),
+                "should find matching element in single-element list"
+            );
         }
 
         #[test]
@@ -462,7 +535,10 @@ mod tests {
             let list = create_list_from_slice(&[42]);
             let result = list.find(&100);
 
-            assert_eq!(result, None, "should return None in single-element list when no match");
+            assert_eq!(
+                result, None,
+                "should return None in single-element list when no match"
+            );
         }
 
         #[test]
@@ -471,7 +547,11 @@ mod tests {
             let list = create_list_from_slice(&strings);
 
             let result = list.find(&"cherry");
-            assert_eq!(result, Some(2), "should find string element at correct index");
+            assert_eq!(
+                result,
+                Some(2),
+                "should find string element at correct index"
+            );
 
             let result2 = list.find(&"grape");
             assert_eq!(result2, None, "should return None for non‑existent string");
@@ -486,7 +566,10 @@ mod tests {
             // Search for value that doesn't exist but would be early in the list
             let result = list.find(&1); // Should exit immediately at 0 (0 > 1 is false, but 2 > 1 → true → break)
 
-            assert_eq!(result, None, "should efficiently exit early when value is between first elements");
+            assert_eq!(
+                result, None,
+                "should efficiently exit early when value is between first elements"
+            );
 
             // Verify it didn't scan the whole list
             // The early exit should happen after checking first few elements
@@ -501,19 +584,37 @@ mod tests {
             }
 
             let people = vec![
-                Person { name: "Alice".to_string(), age: 25 },
-                Person { name: "Bob".to_string(), age: 30 },
-                Person { name: "Charlie".to_string(), age: 35 },
+                Person {
+                    name: "Alice".to_string(),
+                    age: 25,
+                },
+                Person {
+                    name: "Bob".to_string(),
+                    age: 30,
+                },
+                Person {
+                    name: "Charlie".to_string(),
+                    age: 35,
+                },
             ];
             let list = create_list_from_slice(&people);
 
-            let target = Person { name: "Bob".to_string(), age: 30 };
+            let target = Person {
+                name: "Bob".to_string(),
+                age: 30,
+            };
             let result = list.find(&target);
             assert_eq!(result, Some(1), "should find custom type by full equality");
 
-            let nonexistent = Person { name: "David".to_string(), age: 40 };
+            let nonexistent = Person {
+                name: "David".to_string(),
+                age: 40,
+            };
             let result2 = list.find(&nonexistent);
-            assert_eq!(result2, None, "should return None for non‑existent custom type");
+            assert_eq!(
+                result2, None,
+                "should return None for non‑existent custom type"
+            );
         }
 
         #[test]
@@ -530,18 +631,38 @@ mod tests {
             let _result3 = list.find(&9);
 
             // Verify list hasn't been modified
-            assert_eq!(list.to_vec(), original_vec, "find operation should not modify the original list");
-            assert_eq!(list.len(), 5, "list length should remain unchanged after find operations");
+            assert_eq!(
+                list.to_vec(),
+                original_vec,
+                "find operation should not modify the original list"
+            );
+            assert_eq!(
+                list.len(),
+                5,
+                "list length should remain unchanged after find operations"
+            );
         }
 
         #[test]
         fn test_find_on_list_with_negative_numbers() {
             let list = create_list_from_slice(&[-10, -5, 0, 5, 10]);
 
-            assert_eq!(list.find(&-5), Some(1), "should find negative number at correct index");
+            assert_eq!(
+                list.find(&-5),
+                Some(1),
+                "should find negative number at correct index"
+            );
             assert_eq!(list.find(&0), Some(2), "should find zero at correct index");
-            assert_eq!(list.find(&15), None, "should return None for value larger than all elements");
-            assert_eq!(list.find(&-15), None, "should return None for value smaller than all elements");
+            assert_eq!(
+                list.find(&15),
+                None,
+                "should return None for value larger than all elements"
+            );
+            assert_eq!(
+                list.find(&-15),
+                None,
+                "should return None for value smaller than all elements"
+            );
         }
     }
 }

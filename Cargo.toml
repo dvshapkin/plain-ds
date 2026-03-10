@@ -1,6 +1,6 @@
 [package]
 name = "plain-ds"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2024"
 
 authors = ["dvshapkin <dvshapkin@mail.ru>"]
@@ -12,13 +12,17 @@ documentation = "https://docs.rs/plain-ds"
 homepage = "https://github.com/dvshapkin/plain-ds"
 repository = "https://github.com/dvshapkin/plain-ds"
 
-keywords = ["data-structures", "ds", "list", "single-linked-list", "sorted-list"]
+keywords = ["data-structures", "list", "tree"]
 categories = ["data-structures"]
 
 [lib]
 doctest = false
 
-[dependencies]
+[features]
+default = ["tree"]
+list = []
+tree = []
+full = ["list", "tree"]
 
 [dev-dependencies]
 drop-tracker = "0.1"
