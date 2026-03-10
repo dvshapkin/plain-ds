@@ -2,7 +2,6 @@ mod core;
 
 #[cfg(feature = "list")]
 pub mod list;
-pub mod tree;
 
 #[cfg(feature = "tree")]
 pub mod tree;
